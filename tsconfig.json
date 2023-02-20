@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ES2015",
+        "module": "Node16",
+        "lib": ["ES2017", "DOM"],
+        "moduleResolution": "Node",
+        "rootDir": "./src",
+        "allowSyntheticDefaultImports": true,
+        "importHelpers": true,
+        "alwaysStrict": true,
+        "sourceMap": false,
+        "forceConsistentCasingInFileNames": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "strictNullChecks": false,
+        "outDir": "dist"
+    },
+    "exclude": ["node_modules"]
+}

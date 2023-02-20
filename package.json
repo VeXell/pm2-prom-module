@@ -1,0 +1,49 @@
+{
+    "name": "pm2-prom-module",
+    "version": "1.0.0",
+    "description": "PM2 module to help collect applications statistic and send it to Prometheus server",
+    "main": "dist/index.js",
+    "dependencies": {
+        "pm2": "^5.2.2",
+        "pmx": "beta"
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "watch": "tsc -w -p tsconfig.json"
+    },
+    "files": [
+        "README.md",
+        "dist/"
+    ],
+    "apps": [
+        {
+            "merge_logs": true,
+            "max_memory_restart": "100M",
+            "script": "dist/index.js"
+        }
+    ],
+    "config": {},
+    "devDependencies": {
+        "@types/node": "^18.11.9",
+        "typescript": "^4.9.5"
+    },
+    "engines": {
+        "node": ">=14"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/VeXell/pm2-prom-module.git"
+    },
+    "author": "Viacheslav Volkov (vexell@gmail.com)",
+    "license": "MIT",
+    "keywords": [
+        "PM2",
+        "Prometheus",
+        "Metrics",
+        "Monitoring",
+        "Prom client",
+        "Module",
+        "Node.js",
+        "Javascript"
+    ]
+}

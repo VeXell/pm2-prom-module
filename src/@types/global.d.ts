@@ -1,5 +1,7 @@
 type IConfig = {
     debug: boolean;
+    port: string;
+    prefix: string;
 };
 
 type IPMXConfig = {

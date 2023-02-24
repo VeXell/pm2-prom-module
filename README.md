@@ -17,3 +17,18 @@ pm2 install pm2-prom-module
 ```bash
 pm2 uninstall pm2-prom-module
 ```
+
+## Configuration
+
+Default settings:
+
+-   `port` Connection port for Prometheus agent. (default to `9988`)
+-   `prefix` Prefix for all metrics (default to `pm2`)
+-   `debug` Enable debug mode to show logs from the module (default to `false`)
+
+To modify the module config values you can use the following commands:
+
+```bash
+pm2 set pm2-prom-module:debug true
+pm2 set pm2-prom-module:port 10801
+```

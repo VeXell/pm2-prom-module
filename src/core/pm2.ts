@@ -1,19 +1,19 @@
 import pm2 from 'pm2';
-import os from 'node:os';
 
 import { App } from './app';
-import { handleUnit } from '../utils';
-import { getLogger } from '../utils/logger';
+
+import {
+    metricAvailableApps,
+    metricAppInstances,
+    metricAppAverageMemory,
+    metricAppTotalMemory,
+} from '../utils/metrics';
 
 const WORKER_CHECK_INTERVAL = 1000;
-const SHOW_STAT_INTERVAL = 10000;
-
-const TOTAL_CPUS = os.cpus().length;
-const MAX_AVAILABLE_WORKERS_COUNT = TOTAL_CPUS - 1;
 
 const APPS: { [key: string]: App } = {};
 
-export const startPm2Connect = (conf: IConfig) => {
+export const startPm2Connect = (_conf: IConfig) => {
     pm2.connect((err) => {
         if (err) return console.error(err.stack || err);
 
@@ -73,33 +73,19 @@ export const startPm2Connect = (conf: IConfig) => {
                         pmId: app.pm_id,
                     });
 
-                    processWorkingApp(conf, workingApp);
+                    processWorkingApp(workingApp);
                 });
             });
         }, WORKER_CHECK_INTERVAL);
-
-        if (conf.debug) {
-            setInterval(() => {
-                getLogger().debug(
-                    `System: Free memory ${handleUnit(os.freemem())}, Total memory: ${handleUnit(
-                        os.totalmem()
-                    )}`
-                );
-
-                if (Object.keys(APPS).length) {
-                    for (const [, app] of Object.entries(APPS)) {
-                        getLogger().debug(
-                            `App "${app.getName()}" has ${app.getActiveWorkersCount()} worker(s). CPU: ${app.getCpuThreshold()}, Memory: ${app.getTotalUsedMemory()}MB`
-                        );
-                    }
-                } else {
-                    getLogger().debug(`No apps available`);
-                }
-            }, SHOW_STAT_INTERVAL);
-        }
     });
 };
 
-function processWorkingApp(conf: IConfig, workingApp: App) {
-    //
+function processWorkingApp(workingApp: App) {
+    metricAvailableApps?.set(Object.keys(APPS).length);
+
+    const labels = { app: workingApp.getName() };
+
+    metricAppInstances?.set(labels, workingApp.getActiveWorkersCount());
+    metricAppAverageMemory?.set(labels, workingApp.getAverageUsedMemory());
+    metricAppTotalMemory?.set(labels, workingApp.getTotalUsedMemory());
 }

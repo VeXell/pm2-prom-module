@@ -23,7 +23,7 @@ pm2 uninstall pm2-prom-module
 Default settings:
 
 -   `port` Connection port for Prometheus agent. (default to `9988`)
--   `prefix` Prefix for all metrics (default to `pm2`)
+-   `service_name` Default label for registry (default to `` - empty string)
 -   `debug` Enable debug mode to show logs from the module (default to `false`)
 
 To modify the module config values you can use the following commands:
@@ -31,4 +31,5 @@ To modify the module config values you can use the following commands:
 ```bash
 pm2 set pm2-prom-module:debug true
 pm2 set pm2-prom-module:port 10801
+pm2 set pm2-prom-module:service_name MyApp
 ```

@@ -8,14 +8,16 @@ import { registry as promClient, initMetrics } from './utils/metrics';
 
 const DEFAULT_PREFIX = 'pm2';
 
-const startPromServer = (prefix: string) => {
-    initMetrics(prefix);
+const startPromServer = (prefix: string, port: string, serviceName?: string) => {
+    initMetrics(prefix, serviceName);
 
-    createServer(async (_req: IncomingMessage, res: ServerResponse) => {
+    const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
         res.setHeader('Content-Type', promClient.contentType);
         res.end(await promClient.metrics());
         return;
     });
+
+    promServer.listen(port, () => console.log(`Metrics server is available on port ${port}.`));
 };
 
 pmx.initModule(
@@ -37,18 +39,17 @@ pmx.initModule(
         if (err) return console.error(err.stack || err);
 
         const moduleConfig = conf.module_conf;
-        const prefix = moduleConfig.prefix || DEFAULT_PREFIX;
 
         initLogger({ isDebug: moduleConfig.debug });
         startPm2Connect(moduleConfig);
-        startPromServer(prefix);
+        startPromServer(DEFAULT_PREFIX, moduleConfig.port, moduleConfig.service_name);
 
         pmx.configureModule({
             human_info: [
                 ['Status', 'Module enabled'],
                 ['Debug', moduleConfig.debug ? 'Enabled' : 'Disabled'],
                 ['Port', moduleConfig.port],
-                ['Metrics prefix', moduleConfig.prefix],
+                ['Service name', moduleConfig.service_name ? moduleConfig.service_name : `N/A`],
             ],
         });
     }

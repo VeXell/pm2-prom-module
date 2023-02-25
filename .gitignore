@@ -2,3 +2,5 @@ node_modules
 .DS_Store
 .vscode
 dist
+*.js
+!.prettierrx.js

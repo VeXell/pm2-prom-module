@@ -4,7 +4,7 @@
         "module": "Node16",
         "lib": ["ES2017", "DOM"],
         "moduleResolution": "Node",
-        "rootDir": "./src",
+        "rootDir": "./",
         "allowSyntheticDefaultImports": true,
         "importHelpers": true,
         "alwaysStrict": true,
@@ -16,8 +16,7 @@
         "noUnusedParameters": true,
         "noImplicitAny": false,
         "noImplicitThis": false,
-        "strictNullChecks": false,
-        "outDir": "dist"
+        "strictNullChecks": false
     },
     "exclude": ["node_modules"]
 }

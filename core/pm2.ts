@@ -14,6 +14,7 @@ import {
     metricAppPidsCpu,
     metricAppRestartCount,
     metricAppUptime,
+    metricAppPidsMemory,
 } from '../utils/metrics';
 
 const WORKER_CHECK_INTERVAL = 1000;
@@ -114,6 +115,10 @@ function processWorkingApp(workingApp: App) {
 
     workingApp.getCurrentPidsCpu().map((entry, index) => {
         metricAppPidsCpu?.set({ ...labels, instance: index + 1 }, entry.value);
+    });
+
+    workingApp.getCurrentPidsMemory().map((entry, index) => {
+        metricAppPidsMemory?.set({ ...labels, instance: index + 1 }, entry.value);
     });
 
     workingApp.getRestartCount().map((entry, index) => {

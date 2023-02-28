@@ -144,6 +144,19 @@ export class App {
         return values;
     }
 
+    getCurrentPidsMemory() {
+        const values: { pid: string; value: number }[] = [];
+
+        for (const [pid, entry] of Object.entries(this.pids)) {
+            values.push({
+                pid,
+                value: entry.memory[0] || 0,
+            });
+        }
+
+        return values;
+    }
+
     getTotalUsedMemory() {
         const memoryValues: number[] = [];
 

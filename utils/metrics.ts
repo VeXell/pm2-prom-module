@@ -6,6 +6,7 @@ const METRIC_AVAILABLE_CPU = 'cpu_count';
 const METRIC_AVAILABLE_APPS = 'available_apps';
 const METRIC_APP_INSTANCES = 'app_instances';
 const METRIC_APP_AVERAGE_MEMORY = 'app_average_memory';
+const METRIC_APP_PIDS_MEMORY = 'app_pids_memory';
 const METRIC_APP_TOTAL_MEMORY = 'app_total_memory';
 const METRIC_APP_AVERAGE_CPU = 'app_average_cpu';
 const METRIC_APP_PIDS_CPU = 'app_pids_cpu';
@@ -22,6 +23,7 @@ export let metricAppAverageCpu: client.Gauge | undefined;
 export let metricAppPidsCpu: client.Gauge | undefined;
 export let metricAppRestartCount: client.Gauge | undefined;
 export let metricAppUptime: client.Gauge | undefined;
+export let metricAppPidsMemory: client.Gauge | undefined;
 
 let currentPrefix = '';
 export const dynamicGaugeMetricClients: { [key: string]: client.Gauge } = {};
@@ -105,6 +107,13 @@ export const initMetrics = (prefix: string, serviceName?: string) => {
         help: 'Show app uptime in seconds',
         registers: [registry],
         labelNames: ['app'],
+    });
+
+    metricAppPidsMemory = new client.Gauge({
+        name: `${prefix}_${METRIC_APP_PIDS_MEMORY}`,
+        help: 'Show current usage memory for every app instance',
+        registers: [registry],
+        labelNames: ['app', 'instance'],
     });
 };
 

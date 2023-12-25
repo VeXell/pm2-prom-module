@@ -1,5 +1,6 @@
 import client from 'prom-client';
 import os from 'node:os';
+import { getCpuCount } from './cpu';
 
 const METRIC_FREE_MEMORY = 'free_memory';
 const METRIC_AVAILABLE_CPU = 'cpu_count';
@@ -49,7 +50,7 @@ export const initMetrics = (prefix: string, serviceName?: string) => {
         name: `${prefix}_${METRIC_AVAILABLE_CPU}`,
         help: 'Show available CPUs count',
         collect() {
-            this.set(os.cpus().length);
+            this.set(getCpuCount());
         },
         registers: [registry],
     });

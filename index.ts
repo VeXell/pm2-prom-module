@@ -1,19 +1,21 @@
 // @ts-ignore
 import pmx from 'pmx';
+import client from 'prom-client';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
 
 import { startPm2Connect } from './core/pm2';
 import { initLogger } from './utils/logger';
-import { registry as promClient, initMetrics } from './utils/metrics';
+import { initMetrics } from './utils/metrics';
 
 const DEFAULT_PREFIX = 'pm2';
 
 const startPromServer = (prefix: string, port: string, serviceName?: string) => {
     initMetrics(prefix, serviceName);
+    const aggregatorRegistry = new client.AggregatorRegistry();
 
     const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
-        res.setHeader('Content-Type', promClient.contentType);
-        res.end(await promClient.metrics());
+        res.setHeader('Content-Type', aggregatorRegistry.contentType);
+        res.end(await aggregatorRegistry.metrics());
         return;
     });
 

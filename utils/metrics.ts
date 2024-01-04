@@ -15,9 +15,9 @@ const METRIC_APP_RESTART_COUNT = 'app_restart_count';
 const METRIC_APP_UPTIME = 'app_uptime';
 
 export const registry = new client.Registry();
-client.AggregatorRegistry.setRegistries(registry);
 
-export const aggregatorRegistry = new client.AggregatorRegistry();
+const AggregatorRegistry = client.AggregatorRegistry;
+AggregatorRegistry.setRegistries(registry);
 
 export let metricAvailableApps: client.Gauge | undefined;
 export let metricAppInstances: client.Gauge | undefined;

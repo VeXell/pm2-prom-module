@@ -91,6 +91,10 @@ export class App {
         return this;
     }
 
+    getActivePids() {
+        return Object.keys(this.pids).map((pid) => Number(pid));
+    }
+
     getMonitValues() {
         return this.pids;
     }

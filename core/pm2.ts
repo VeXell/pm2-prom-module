@@ -81,12 +81,13 @@ const detectActiveApps = () => {
                 metrics: pm2_env.axm_monitor,
             });
 
+            // Collect metrics
             processWorkingApp(workingApp);
         });
     });
 };
 
-const exportAppStatistic = (data: any, params: { instanceId: number; requestId: string }) => {
+const exportAppStatistic = (data: any, params: { pid: number; app: string }) => {
     console.log(params, data);
 };
 
@@ -116,19 +117,21 @@ export const startPm2Connect = (_conf: IConfig) => {
 
             bus.on(
                 `pm2-prom-module:metrics`,
-                ({
-                    data: { instanceId, requestId, message },
-                }: PM2BusResponse<{ app: string; data: any }>): void => {
-                    logger.debug(
-                        `Got message from instanceId=${instanceId}, requestId=${requestId}. Message=${JSON.stringify(
-                            message
-                        )}`
-                    );
+                (packet: PM2BusResponse<{ app: string; data: any }>): void => {
+                    if (packet.type && packet.data) {
+                        const { app, pid, metrics } = packet.data;
 
-                    if (message.app && APPS[message.app] && message.data) {
-                        logger.debug(`Process message for the app ${message.app}`);
+                        logger.debug(
+                            `Got message from app=${app} and pid=${pid}. Message=${JSON.stringify(
+                                metrics
+                            )}`
+                        );
 
-                        exportAppStatistic(message.data, { instanceId, requestId });
+                        if (app && APPS[app] && metrics) {
+                            logger.debug(`Process message for the app ${app}`);
+
+                            exportAppStatistic(metrics, { pid, app });
+                        }
                     }
                 }
             );
@@ -173,5 +176,22 @@ function processWorkingApp(workingApp: App) {
                 );
             }
         });
+    });
+
+    // Request available metrics from the running app
+    workingApp.getActivePids().forEach((pid) => {
+        pm2.sendDataToProcessId(
+            pid,
+            {
+                type: 'pm2-prom-module:collect',
+                data: {
+                    pid,
+                    appName: workingApp.getName(),
+                },
+            },
+            function (err) {
+                if (err) return console.error(err.stack || err);
+            }
+        );
     });
 }

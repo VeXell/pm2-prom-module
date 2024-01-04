@@ -9,6 +9,6 @@ type IPMXConfig = {
 };
 
 type PM2BusResponse<T> = {
-    type: string;
-    data: { instanceId: number; requestId: string; message: T };
+    type?: string;
+    data?: { pid: number; app: string; metrics: T };
 };

@@ -15,9 +15,10 @@ const METRIC_APP_RESTART_COUNT = 'app_restart_count';
 const METRIC_APP_UPTIME = 'app_uptime';
 
 export const registry = new client.Registry();
-
 const AggregatorRegistry = client.AggregatorRegistry;
 AggregatorRegistry.setRegistries(registry);
+
+export const mergedRegistries = client.Registry.merge([registry, client.register]);
 
 export let metricAvailableApps: client.Gauge | undefined;
 export let metricAppInstances: client.Gauge | undefined;

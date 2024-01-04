@@ -7,3 +7,8 @@ type IConfig = {
 type IPMXConfig = {
     module_conf: IConfig;
 };
+
+type PM2BusResponse<T> = {
+    type: string;
+    data: { instanceId: number; requestId: string; message: T };
+};

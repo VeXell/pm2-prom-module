@@ -16,12 +16,83 @@ import {
     metricAppUptime,
     metricAppPidsMemory,
 } from '../utils/metrics';
+import { getLogger } from '../utils/logger';
 
 const WORKER_CHECK_INTERVAL = 1000;
 
 const APPS: { [key: string]: App } = {};
 
+const detectActiveApps = () => {
+    pm2.list((err, apps) => {
+        if (err) return console.error(err.stack || err);
+
+        const allAppsPids: { [key: string]: number[] } = {};
+
+        apps.forEach((app) => {
+            // Fill all apps pids
+            if (!allAppsPids[app.name]) {
+                allAppsPids[app.name] = [];
+            }
+
+            allAppsPids[app.name].push(app.pid);
+        });
+
+        Object.keys(APPS).forEach((appName) => {
+            if (!allAppsPids[appName]) {
+                // Delete app if not longer exists
+                delete APPS[appName];
+            }
+        });
+
+        apps.forEach((app) => {
+            const pm2_env = app.pm2_env as pm2.Pm2Env;
+
+            if (pm2_env.axm_options.isModule) {
+                return;
+            }
+
+            if (!app.name || !app.pid || app.pm_id === undefined) {
+                return;
+            }
+
+            if (pm2_env.status !== 'online') {
+                delete APPS[app.name];
+                return;
+            }
+
+            if (!APPS[app.name]) {
+                APPS[app.name] = new App(app.name);
+            }
+
+            const workingApp = APPS[app.name];
+
+            const activePids = allAppsPids[app.name];
+            if (activePids) {
+                workingApp.removeNotActivePids(activePids);
+            }
+
+            workingApp.updatePid({
+                id: app.pid,
+                memory: app.monit.memory,
+                cpu: app.monit.cpu || 0,
+                pmId: app.pm_id,
+                restartCount: pm2_env.restart_time || 0,
+                createdAt: pm2_env.created_at || 0,
+                metrics: pm2_env.axm_monitor,
+            });
+
+            processWorkingApp(workingApp);
+        });
+    });
+};
+
+const exportAppStatistic = (data: any, params: { instanceId: number; requestId: string }) => {
+    console.log(params, data);
+};
+
 export const startPm2Connect = (_conf: IConfig) => {
+    const logger = getLogger();
+
     pm2.connect((err) => {
         if (err) return console.error(err.stack || err);
 
@@ -36,68 +107,36 @@ export const startPm2Connect = (_conf: IConfig) => {
             initDynamicGaugeMetricClients(additionalMetrics);
         }
 
+        detectActiveApps();
+
+        pm2.launchBus((err, bus): void => {
+            if (err) return console.error(err.stack || err);
+
+            logger.debug('Start bus listener');
+
+            bus.on(
+                `pm2-prom-module:metrics`,
+                ({
+                    data: { instanceId, requestId, message },
+                }: PM2BusResponse<{ app: string; data: any }>): void => {
+                    logger.debug(
+                        `Got message from instanceId=${instanceId}, requestId=${requestId}. Message=${JSON.stringify(
+                            message
+                        )}`
+                    );
+
+                    if (message.app && APPS[message.app] && message.data) {
+                        logger.debug(`Process message for the app ${message.app}`);
+
+                        exportAppStatistic(message.data, { instanceId, requestId });
+                    }
+                }
+            );
+        });
+
+        // Start timer to update available apps
         setInterval(() => {
-            pm2.list((err, apps) => {
-                if (err) return console.error(err.stack || err);
-
-                const allAppsPids: { [key: string]: number[] } = {};
-
-                apps.forEach((app) => {
-                    // Fill all apps pids
-                    if (!allAppsPids[app.name]) {
-                        allAppsPids[app.name] = [];
-                    }
-
-                    allAppsPids[app.name].push(app.pid);
-                });
-
-                Object.keys(APPS).forEach((appName) => {
-                    if (!allAppsPids[appName]) {
-                        // Delete app if not longer exists
-                        delete APPS[appName];
-                    }
-                });
-
-                apps.forEach((app) => {
-                    const pm2_env = app.pm2_env as pm2.Pm2Env;
-
-                    if (pm2_env.axm_options.isModule) {
-                        return;
-                    }
-
-                    if (!app.name || !app.pid || app.pm_id === undefined) {
-                        return;
-                    }
-
-                    if (pm2_env.status !== 'online') {
-                        delete APPS[app.name];
-                        return;
-                    }
-
-                    if (!APPS[app.name]) {
-                        APPS[app.name] = new App(app.name);
-                    }
-
-                    const workingApp = APPS[app.name];
-
-                    const activePids = allAppsPids[app.name];
-                    if (activePids) {
-                        workingApp.removeNotActivePids(activePids);
-                    }
-
-                    workingApp.updatePid({
-                        id: app.pid,
-                        memory: app.monit.memory,
-                        cpu: app.monit.cpu || 0,
-                        pmId: app.pm_id,
-                        restartCount: pm2_env.restart_time || 0,
-                        createdAt: pm2_env.created_at || 0,
-                        metrics: pm2_env.axm_monitor,
-                    });
-
-                    processWorkingApp(workingApp);
-                });
-            });
+            detectActiveApps();
         }, WORKER_CHECK_INTERVAL);
     });
 };

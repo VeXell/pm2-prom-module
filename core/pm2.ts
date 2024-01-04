@@ -179,7 +179,7 @@ function processWorkingApp(workingApp: App) {
     });
 
     // Request available metrics from the running app
-    workingApp.getActivePids().forEach((pid) => {
+    workingApp.getActivePids().forEach((pid, index) => {
         pm2.sendDataToProcessId(
             pid,
             {
@@ -187,6 +187,7 @@ function processWorkingApp(workingApp: App) {
                 data: {
                     pid,
                     appName: workingApp.getName(),
+                    instance: index + 1,
                 },
             },
             function (err) {

@@ -115,26 +115,23 @@ export const startPm2Connect = (_conf: IConfig) => {
 
             logger.debug('Start bus listener');
 
-            bus.on(
-                `pm2-prom-module:metrics`,
-                (packet: PM2BusResponse<{ app: string; data: any }>): void => {
-                    if (packet.type && packet.data) {
-                        const { app, pid, metrics } = packet.data;
+            bus.on('process:msg', (packet: PM2BusResponse<any>): void => {
+                if (packet.type && packet.type === 'pm2-prom-module:metrics' && packet.data) {
+                    const { app, pid, metrics } = packet.data;
 
-                        logger.debug(
-                            `Got message from app=${app} and pid=${pid}. Message=${JSON.stringify(
-                                metrics
-                            )}`
-                        );
+                    logger.debug(
+                        `Got message from app=${app} and pid=${pid}. Message=${JSON.stringify(
+                            metrics
+                        )}`
+                    );
 
-                        if (app && APPS[app] && metrics) {
-                            logger.debug(`Process message for the app ${app}`);
+                    if (app && APPS[app] && metrics) {
+                        logger.debug(`Process message for the app ${app}`);
 
-                            exportAppStatistic(metrics, { pid, app });
-                        }
+                        exportAppStatistic(metrics, { pid, app });
                     }
                 }
-            );
+            });
         });
 
         // Start timer to update available apps
@@ -190,7 +187,7 @@ function processWorkingApp(workingApp: App) {
                     instance: index + 1,
                 },
             },
-            function (err) {
+            (err) => {
                 if (err) return console.error(err.stack || err);
             }
         );

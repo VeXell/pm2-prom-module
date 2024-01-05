@@ -1,26 +1,20 @@
 // @ts-ignore
 import pmx from 'pmx';
-import client from 'prom-client';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
 
 import { startPm2Connect } from './core/pm2';
 import { initLogger } from './utils/logger';
-import { initMetrics, registry } from './utils/metrics';
+import { initMetrics, combineAllRegistries } from './utils/metrics';
 
 const DEFAULT_PREFIX = 'pm2';
 
 const startPromServer = (prefix: string, port: string, serviceName?: string) => {
     initMetrics(prefix, serviceName);
-    const aggregatorRegistry = new client.AggregatorRegistry();
 
-    const promServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-        if (req.url === '/cluster') {
-            res.setHeader('Content-Type', aggregatorRegistry.contentType);
-            res.end(await aggregatorRegistry.clusterMetrics());
-        } else {
-            res.setHeader('Content-Type', registry.contentType);
-            res.end(await registry.metrics());
-        }
+    const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
+        const mergedRegistry = combineAllRegistries();
+        res.setHeader('Content-Type', mergedRegistry.contentType);
+        res.end(await mergedRegistry.metrics());
 
         return;
     });

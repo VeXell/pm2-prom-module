@@ -2,6 +2,7 @@ import pm2 from 'pm2';
 
 import { App, PM2_METRICS } from './app';
 import { toUndescore } from '../utils';
+import { PM2BusResponse } from '../types';
 
 import {
     initDynamicGaugeMetricClients,
@@ -15,7 +16,9 @@ import {
     metricAppRestartCount,
     metricAppUptime,
     metricAppPidsMemory,
+    processAppMetrics,
 } from '../utils/metrics';
+
 import { getLogger } from '../utils/logger';
 
 const WORKER_CHECK_INTERVAL = 1000;
@@ -87,11 +90,7 @@ const detectActiveApps = () => {
     });
 };
 
-const exportAppStatistic = (data: any, params: { pid: number; app: string }) => {
-    console.log(params, data);
-};
-
-export const startPm2Connect = (_conf: IConfig) => {
+export const startPm2Connect = (conf: IConfig) => {
     const logger = getLogger();
 
     pm2.connect((err) => {
@@ -110,25 +109,34 @@ export const startPm2Connect = (_conf: IConfig) => {
 
         detectActiveApps();
 
+        // Collect statistic from running apps
         pm2.launchBus((err, bus): void => {
             if (err) return console.error(err.stack || err);
 
             logger.debug('Start bus listener');
 
-            bus.on('process:msg', (packet: PM2BusResponse<any>): void => {
-                if (packet.type && packet.type === 'pm2-prom-module:metrics' && packet.data) {
-                    const { app, pid, metrics } = packet.data;
+            bus.on('process:msg', (packet: PM2BusResponse): void => {
+                if (
+                    packet.process &&
+                    packet.raw.topic === 'pm2-prom-module:metrics' &&
+                    packet.raw.data
+                ) {
+                    const { name, pm_id } = packet.process;
 
                     logger.debug(
-                        `Got message from app=${app} and pid=${pid}. Message=${JSON.stringify(
-                            metrics
+                        `Got message from app=${name} and pid=${pm_id}. Message=${JSON.stringify(
+                            packet.raw.data
                         )}`
                     );
 
-                    if (app && APPS[app] && metrics) {
-                        logger.debug(`Process message for the app ${app}`);
+                    if (name && APPS[name] && packet.raw.data.metrics) {
+                        logger.debug(`Process message for the app ${name}`);
 
-                        exportAppStatistic(metrics, { pid, app });
+                        processAppMetrics(conf, {
+                            pmId: pm_id,
+                            appName: name,
+                            appResponse: packet.raw.data,
+                        });
                     }
                 }
             });
@@ -152,23 +160,23 @@ function processWorkingApp(workingApp: App) {
     metricAppAverageCpu?.set(labels, workingApp.getAverageCpu());
     metricAppUptime?.set(labels, workingApp.getUptime());
 
-    workingApp.getCurrentPidsCpu().map((entry, index) => {
-        metricAppPidsCpu?.set({ ...labels, instance: index + 1 }, entry.value);
+    workingApp.getCurrentPidsCpu().map((entry) => {
+        metricAppPidsCpu?.set({ ...labels, instance: entry.pmId }, entry.value);
     });
 
-    workingApp.getCurrentPidsMemory().map((entry, index) => {
-        metricAppPidsMemory?.set({ ...labels, instance: index + 1 }, entry.value);
+    workingApp.getCurrentPidsMemory().map((entry) => {
+        metricAppPidsMemory?.set({ ...labels, instance: entry.pmId }, entry.value);
     });
 
-    workingApp.getRestartCount().map((entry, index) => {
-        metricAppRestartCount?.set({ ...labels, instance: index + 1 }, entry.value);
+    workingApp.getRestartCount().map((entry) => {
+        metricAppRestartCount?.set({ ...labels, instance: entry.pmId }, entry.value);
     });
 
-    workingApp.getPidPm2Metrics().map((entry, index) => {
+    workingApp.getPidPm2Metrics().map((entry) => {
         Object.keys(entry.metrics).forEach((metricKey) => {
             if (dynamicGaugeMetricClients[metricKey]) {
                 dynamicGaugeMetricClients[metricKey].set(
-                    { ...labels, instance: index + 1 },
+                    { ...labels, instance: entry.pmId },
                     entry.metrics[metricKey]
                 );
             }
@@ -176,16 +184,14 @@ function processWorkingApp(workingApp: App) {
     });
 
     // Request available metrics from the running app
-    workingApp.getActivePids().forEach((pid, index) => {
+    workingApp.getActivePm2Ids().forEach((pm2id) => {
         pm2.sendDataToProcessId(
-            pid,
+            pm2id,
             {
-                type: 'pm2-prom-module:collect',
-                data: {
-                    pid,
-                    appName: workingApp.getName(),
-                    instance: index + 1,
-                },
+                topic: 'pm2-prom-module:collect',
+                data: {},
+                // Required fields by pm2 but we do not use them
+                id: pm2id,
             },
             (err) => {
                 if (err) return console.error(err.stack || err);

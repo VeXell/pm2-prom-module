@@ -7,8 +7,3 @@ type IConfig = {
 type IPMXConfig = {
     module_conf: IConfig;
 };
-
-type PM2BusResponse<T> = {
-    type?: string;
-    data?: { pid: number; app: string; metrics: T };
-};

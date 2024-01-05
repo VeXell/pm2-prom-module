@@ -91,8 +91,14 @@ export class App {
         return this;
     }
 
-    getActivePids() {
-        return Object.keys(this.pids).map((pid) => Number(pid));
+    getActivePm2Ids() {
+        const values: number[] = [];
+
+        for (const [, entry] of Object.entries(this.pids)) {
+            values.push(entry.pmId);
+        }
+
+        return values;
     }
 
     getMonitValues() {
@@ -110,11 +116,12 @@ export class App {
     }
 
     getRestartCount() {
-        const values: { pid: string; value: number }[] = [];
+        const values: { pid: string; value: number; pmId: number }[] = [];
 
         for (const [pid, entry] of Object.entries(this.pids)) {
             values.push({
                 pid,
+                pmId: entry.pmId,
                 value: entry.restartCount,
             });
         }
@@ -123,11 +130,12 @@ export class App {
     }
 
     getPidPm2Metrics() {
-        const values: { pid: string; metrics: IMetrics }[] = [];
+        const values: { pid: string; metrics: IMetrics; pmId: number }[] = [];
 
         for (const [pid, entry] of Object.entries(this.pids)) {
             values.push({
                 pid,
+                pmId: entry.pmId,
                 metrics: entry.metrics,
             });
         }
@@ -136,11 +144,12 @@ export class App {
     }
 
     getCurrentPidsCpu() {
-        const values: { pid: string; value: number }[] = [];
+        const values: { pid: string; value: number; pmId: number }[] = [];
 
         for (const [pid, entry] of Object.entries(this.pids)) {
             values.push({
                 pid,
+                pmId: entry.pmId,
                 value: entry.cpu[0] || 0,
             });
         }
@@ -149,11 +158,12 @@ export class App {
     }
 
     getCurrentPidsMemory() {
-        const values: { pid: string; value: number }[] = [];
+        const values: { pid: string; value: number; pmId: number }[] = [];
 
         for (const [pid, entry] of Object.entries(this.pids)) {
             values.push({
                 pid,
+                pmId: entry.pmId,
                 value: entry.memory[0] || 0,
             });
         }

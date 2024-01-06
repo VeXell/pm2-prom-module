@@ -1,11 +1,18 @@
 import { Aggregator } from 'prom-client';
 
-type IValue = { labels: (string | number)[]; value: number };
+type IValue = { labels: Record<string, string | number>; value: number };
+
+export const enum MetricType {
+    Counter = 'counter',
+    Gauge = 'gauge',
+    Histogram = 'histogram',
+    Summary = 'summary',
+}
 
 export type IMetric = {
     aggregator: Aggregator;
     values: IValue[];
-    type: string;
+    type: MetricType;
     name: string;
     help: string;
 };

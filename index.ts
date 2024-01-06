@@ -4,7 +4,7 @@ import { createServer, ServerResponse, IncomingMessage } from 'http';
 
 import { startPm2Connect } from './core/pm2';
 import { initLogger } from './utils/logger';
-import { initMetrics, combineAllRegistries } from './utils/metrics';
+import { initMetrics, combineAllRegistries } from './metrics';
 
 const DEFAULT_PREFIX = 'pm2';
 

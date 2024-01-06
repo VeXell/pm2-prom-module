@@ -16,8 +16,9 @@ import {
     metricAppRestartCount,
     metricAppUptime,
     metricAppPidsMemory,
-    processAppMetrics,
-} from '../utils/metrics';
+} from '../metrics';
+
+import { processAppMetrics } from '../metrics/app';
 
 import { getLogger } from '../utils/logger';
 

@@ -1,8 +1,9 @@
 import client from 'prom-client';
 import os from 'node:os';
 
-import { getCpuCount } from './cpu';
-import { AppResponse } from '../types';
+import { getCpuCount } from '../utils/cpu';
+
+import { appRegistry } from './app';
 
 const METRIC_FREE_MEMORY = 'free_memory';
 const METRIC_AVAILABLE_CPU = 'cpu_count';
@@ -17,7 +18,6 @@ const METRIC_APP_RESTART_COUNT = 'app_restart_count';
 const METRIC_APP_UPTIME = 'app_uptime';
 
 export const registry = new client.Registry();
-const appRegistry = new client.Registry();
 
 export let metricAvailableApps: client.Gauge | undefined;
 export let metricAppInstances: client.Gauge | undefined;
@@ -30,9 +30,6 @@ export let metricAppUptime: client.Gauge | undefined;
 export let metricAppPidsMemory: client.Gauge | undefined;
 
 let currentPrefix = '';
-
-type IAppPidMetric = Record<number, any>;
-const dynamicAppMetrics: { [key: string]: Record<string, IAppPidMetric> } = {};
 
 export const dynamicGaugeMetricClients: { [key: string]: client.Gauge } = {};
 
@@ -134,78 +131,6 @@ export const initDynamicGaugeMetricClients = (metrics: { key: string; descriptio
             registers: [registry],
             labelNames: ['app', 'instance'],
         });
-    });
-};
-
-/*function aggregate(metricsArr) {
-    const metricsByName = new client.Grouper();
-
-    aggregatedRegistry.setContentType(registryType);
-
-    // Gather by name
-    metricsArr.forEach((metrics) => {
-        metrics.forEach((metric) => {
-            metricsByName.add(metric.name, metric);
-        });
-    });
-
-    // Aggregate gathered metrics.
-    metricsByName.forEach((metrics) => {
-        const aggregatorName = metrics[0].aggregator;
-        const aggregatorFn = aggregators[aggregatorName];
-        if (typeof aggregatorFn !== 'function') {
-            throw new Error(`'${aggregatorName}' is not a defined aggregator.`);
-        }
-        const aggregatedMetric = aggregatorFn(metrics);
-        // NB: The 'omit' aggregator returns undefined.
-        if (aggregatedMetric) {
-            const aggregatedMetricWrapper = Object.assign(
-                {
-                    get: () => aggregatedMetric,
-                },
-                aggregatedMetric
-            );
-            aggregatedRegistry.registerMetric(aggregatedMetricWrapper);
-        }
-    });
-
-    return aggregatedRegistry;
-}*/
-
-export const processAppMetrics = (
-    _config: IConfig,
-    data: { pmId: number; appName: string; appResponse: AppResponse }
-) => {
-    if (!Array.isArray(data.appResponse.metrics)) {
-        return;
-    }
-
-    if (!dynamicAppMetrics[data.appName]) {
-        dynamicAppMetrics[data.appName] = {};
-    }
-
-    data.appResponse.metrics.forEach((entry) => {
-        const metricName = entry.name;
-        const key = dynamicAppMetrics[data.appName][metricName];
-
-        if (!key) {
-            dynamicAppMetrics[data.appName][metricName] = {
-                // metric: undefined,
-                // pidData: {},
-            };
-
-            /*switch (entry.type) {
-                case 'counter':
-                    dynamicAppMetrics[data.appName][data.pmId][metricName] = new client.Counter({
-                        name: entry.name,
-                        help: entry.help,
-                        registers: [appRegistry],
-                        aggregator: entry.aggregator,
-                        labelNames: ['app', 'instance'],
-                    });
-                    break;
-            }*/
-        }
     });
 };
 

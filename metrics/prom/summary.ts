@@ -1,7 +1,7 @@
 import client from 'prom-client';
 import { IMetric } from '../../types';
 
-export class IHistogram extends client.Histogram {
+export class ISummary extends client.Summary {
     name: string;
     help: string;
     type: client.MetricType;
@@ -25,7 +25,7 @@ export class IHistogram extends client.Histogram {
         });
     }
 
-    async getForPromString() {
+    async get() {
         const values: IMetric['values'] = [];
 
         for (const [, entries] of Object.entries(this.values)) {
@@ -38,20 +38,7 @@ export class IHistogram extends client.Histogram {
             type: this.type,
             values,
             aggregator: this.aggregator,
+            collect: async () => {},
         };
     }
 }
-
-export const getHistogramBuckets = (values: IMetric['values']) => {
-    const labels = new Set<number>();
-
-    values.forEach((entry) => {
-        Object.keys(entry.labels).forEach((label) => {
-            if (label === 'le' && entry.labels[label] !== '+Inf') {
-                labels.add(Number(entry.labels[label]));
-            }
-        });
-    });
-
-    return Array.from(labels);
-};

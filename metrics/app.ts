@@ -2,6 +2,7 @@ import client from 'prom-client';
 import { AppResponse, IMetric, MetricType } from '../types';
 import { getLogger } from '../utils/logger';
 import { IHistogram } from './prom/histogram';
+import { ISummary } from './prom/summary';
 
 type IAppPidMetric = Record<string, IMetric>;
 type IAppNameMetric = Record<string, IAppPidMetric>;
@@ -58,6 +59,19 @@ const createMetricByType = (metric: IMetric, labels: string[]) => {
 
             return metricEntry;
         }
+        case MetricType.Summary: {
+            const filteredMetrics = labels.filter((entry) => entry !== 'quantile');
+
+            const metricEntry = new ISummary({
+                name: metric.name,
+                help: metric.help,
+                aggregator: metric.aggregator,
+                labelNames: [...DEFAULT_LABELS, ...filteredMetrics],
+                registers: [],
+            });
+
+            return metricEntry;
+        }
         default:
             return null;
     }
@@ -84,7 +98,7 @@ const createRegistryMetrics = (registry: client.Registry) => {
                 if (!createdMetric) {
                     logger.error(`Unsupported metric type ${metric.type} for ${metricName}`);
                 } else {
-                    // Registry metric
+                    // Register metric
                     registry.registerMetric(createdMetric);
 
                     const defaultLabels: Record<string, string | number> = {
@@ -94,7 +108,7 @@ const createRegistryMetrics = (registry: client.Registry) => {
 
                     // Fill data
                     switch (metric.type) {
-                        case MetricType.Counter:
+                        case MetricType.Counter: {
                             metric.values.forEach((entry) => {
                                 try {
                                     (createdMetric as client.Counter).inc(
@@ -107,7 +121,8 @@ const createRegistryMetrics = (registry: client.Registry) => {
                             });
 
                             break;
-                        case MetricType.Gauge:
+                        }
+                        case MetricType.Gauge: {
                             metric.values.forEach((entry) => {
                                 try {
                                     (createdMetric as client.Gauge).inc(
@@ -120,18 +135,15 @@ const createRegistryMetrics = (registry: client.Registry) => {
                             });
 
                             break;
-                        case MetricType.Histogram:
-                            const values = metric.values.map((entry) => {
-                                const newEntry = { ...entry };
-                                const labels = { ...entry.labels, ...defaultLabels };
-
-                                newEntry.labels = labels;
-
-                                return newEntry;
-                            });
-
-                            (createdMetric as IHistogram).setValues(defaultLabels, values);
+                        }
+                        case MetricType.Histogram: {
+                            (createdMetric as IHistogram).setValues(defaultLabels, metric.values);
                             break;
+                        }
+                        case MetricType.Summary: {
+                            (createdMetric as ISummary).setValues(defaultLabels, metric.values);
+                            break;
+                        }
                         default:
                             break;
                     }

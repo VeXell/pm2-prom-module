@@ -37,22 +37,22 @@ const parseLabels = (values: IMetric['values']) => {
     return Array.from<string>(labels);
 };
 
-export const createRegistryMetrics = (registry: client.Registry) => {
+const createRegistryMetrics = (registry: client.Registry) => {
     const logger = getLogger();
     const metrics: Record<string, client.Metric> = {};
 
-    for (const [, appEntry] of Object.entries(dynamicAppMetrics)) {
-        for (const [appName, pidEntry] of Object.entries(appEntry)) {
+    for (const [appName, appEntry] of Object.entries(dynamicAppMetrics)) {
+        for (const [metricName, pidEntry] of Object.entries(appEntry)) {
             for (const [pm2id, metric] of Object.entries(pidEntry)) {
-                if (!metrics[metric.name]) {
+                if (!metrics[metricName]) {
                     const parsedLabels = parseLabels(metric.values);
-                    metrics[metric.name] = createMetricByType(metric, parsedLabels);
+                    metrics[metricName] = createMetricByType(metric, parsedLabels);
                 }
 
-                const createdMetric = metrics[metric.name];
+                const createdMetric = metrics[metricName];
 
                 if (!createdMetric) {
-                    logger.error(`Unsupported metric type ${metric.type} for ${metric.name}`);
+                    logger.error(`Unsupported metric type ${metric.type} for ${metricName}`);
                 } else {
                     // Registry metric
                     registry.registerMetric(createdMetric);
@@ -66,10 +66,14 @@ export const createRegistryMetrics = (registry: client.Registry) => {
                             };
 
                             metric.values.forEach((entry) => {
-                                (createdMetric as client.Counter).inc(
-                                    { ...entry.labels, ...defaultLabels },
-                                    entry.value
-                                );
+                                try {
+                                    (createdMetric as client.Counter).inc(
+                                        { ...entry.labels, ...defaultLabels },
+                                        entry.value
+                                    );
+                                } catch (error) {
+                                    logger.error(error);
+                                }
                             });
 
                             break;
@@ -79,6 +83,15 @@ export const createRegistryMetrics = (registry: client.Registry) => {
                 }
             }
         }
+    }
+};
+
+export const deleteAppMetrics = (appName: string) => {
+    const logger = getLogger();
+
+    if (dynamicAppMetrics[appName]) {
+        logger.debug(`Remove metrics for app ${appName}`);
+        delete dynamicAppMetrics[appName];
     }
 };
 
@@ -94,18 +107,18 @@ export const processAppMetrics = (
         if (Array.isArray(entry.values) && entry.values.length) {
             const metricName = entry.name;
 
-            if (!dynamicAppMetrics[metricName]) {
-                dynamicAppMetrics[metricName] = {};
+            if (!dynamicAppMetrics[data.appName]) {
+                dynamicAppMetrics[data.appName] = {};
             }
 
-            const appKey = dynamicAppMetrics[metricName][data.appName];
+            const appKey = dynamicAppMetrics[data.appName][metricName];
 
             if (!appKey) {
-                dynamicAppMetrics[metricName][data.appName] = {};
+                dynamicAppMetrics[data.appName][metricName] = {};
             }
 
             const pm2id = String(data.pmId);
-            dynamicAppMetrics[metricName][data.appName][pm2id] = entry;
+            dynamicAppMetrics[data.appName][metricName][pm2id] = entry;
         }
     });
 };

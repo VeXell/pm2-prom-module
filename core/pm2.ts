@@ -18,7 +18,7 @@ import {
     metricAppPidsMemory,
 } from '../metrics';
 
-import { processAppMetrics } from '../metrics/app';
+import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
 
 import { getLogger } from '../utils/logger';
 
@@ -26,61 +26,103 @@ const WORKER_CHECK_INTERVAL = 1000;
 
 const APPS: { [key: string]: App } = {};
 
+const isMonitoringApp = (app: pm2.ProcessDescription) => {
+    const pm2_env = app.pm2_env as pm2.Pm2Env;
+
+    if (
+        pm2_env.axm_options.isModule ||
+        !app.name ||
+        !app.pid ||
+        app.pm_id === undefined || // pm_id might be zero
+        pm2_env.status !== 'online'
+    ) {
+        return false;
+    }
+
+    return true;
+};
+
 const detectActiveApps = () => {
+    const logger = getLogger();
+
     pm2.list((err, apps) => {
         if (err) return console.error(err.stack || err);
 
-        const allAppsPids: { [key: string]: number[] } = {};
+        const allAppsPids: { [key: string]: { pids: number[]; restartsSum: number } } = {};
 
         apps.forEach((app) => {
-            // Fill all apps pids
-            if (!allAppsPids[app.name]) {
-                allAppsPids[app.name] = [];
+            const pm2_env = app.pm2_env as pm2.Pm2Env;
+            const appName = app.name;
+
+            if (isMonitoringApp(app)) {
+                logger.debug(`Skip app ${appName}`);
+                return;
             }
 
-            allAppsPids[app.name].push(app.pid);
+            // Fill all apps pids
+            if (!allAppsPids[appName]) {
+                allAppsPids[appName] = {
+                    pids: [],
+                    restartsSum: 0,
+                };
+            }
+
+            allAppsPids[appName].pids.push(app.pid);
+            allAppsPids[appName].restartsSum =
+                allAppsPids[appName].restartsSum + Number(pm2_env.restart_time || 0);
         });
 
         Object.keys(APPS).forEach((appName) => {
+            // Filters apps which do not have active pids
             if (!allAppsPids[appName]) {
-                // Delete app if not longer exists
+                logger.debug(`Delete ${appName} because it not longer exists`);
                 delete APPS[appName];
+
+                // Clear app metrics
+                deleteAppMetrics(appName);
+            } else {
+                const workingApp = APPS[appName];
+
+                if (workingApp) {
+                    const pidsRestartsSum = workingApp
+                        .getRestartCount()
+                        .reduce((accum, item) => accum + item.value, 0);
+
+                    if (pidsRestartsSum !== allAppsPids[appName].restartsSum) {
+                        logger.debug(`App ${appName} has been restarted. Clear metrics`);
+                        deleteAppMetrics(appName);
+                    }
+                }
             }
         });
 
         apps.forEach((app) => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
+            const appName = app.name;
 
-            if (pm2_env.axm_options.isModule) {
+            if (isMonitoringApp(app)) {
                 return;
             }
 
-            if (!app.name || !app.pid || app.pm_id === undefined) {
-                return;
+            if (!APPS[appName]) {
+                APPS[appName] = new App(appName);
             }
 
-            if (pm2_env.status !== 'online') {
-                delete APPS[app.name];
-                return;
-            }
+            const workingApp = APPS[appName];
+            const activePids = allAppsPids[appName].pids;
 
-            if (!APPS[app.name]) {
-                APPS[app.name] = new App(app.name);
-            }
-
-            const workingApp = APPS[app.name];
-
-            const activePids = allAppsPids[app.name];
             if (activePids) {
                 workingApp.removeNotActivePids(activePids);
             }
+
+            const restartCount = pm2_env.restart_time || 0;
 
             workingApp.updatePid({
                 id: app.pid,
                 memory: app.monit.memory,
                 cpu: app.monit.cpu || 0,
                 pmId: app.pm_id,
-                restartCount: pm2_env.restart_time || 0,
+                restartCount,
                 createdAt: pm2_env.created_at || 0,
                 metrics: pm2_env.axm_monitor,
             });

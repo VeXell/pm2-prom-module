@@ -6,7 +6,7 @@
         // "moduleResolution": "Node16",
         "rootDir": "./",
         "allowSyntheticDefaultImports": true,
-        "importHelpers": true,
+        "importHelpers": false,
         "alwaysStrict": true,
         "sourceMap": false,
         "forceConsistentCasingInFileNames": true,

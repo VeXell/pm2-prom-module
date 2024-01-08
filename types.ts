@@ -30,11 +30,6 @@ export type IHistogramMetric = IBaseMetric & {
 
 export type ISummaryMetric = IBaseMetric & {
     type: MetricType.Summary;
-    percentiles?: number[];
-    maxAgeSeconds?: number;
-    ageBuckets?: number;
-    pruneAgedBuckets?: boolean;
-    compressCount?: number;
 };
 
 export type IMetric = ICounterMetric | IGaugeMetric | IHistogramMetric | ISummaryMetric;

@@ -34,13 +34,8 @@ let currentPrefix = '';
 export const dynamicGaugeMetricClients: { [key: string]: client.Gauge } = {};
 
 // Metrics
-export const initMetrics = (prefix: string, serviceName?: string) => {
+export const initMetrics = (prefix: string) => {
     currentPrefix = prefix;
-
-    if (serviceName) {
-        registry.setDefaultLabels({ serviceName });
-        //appRegistry.setDefaultLabels({ serviceName });
-    }
 
     new client.Gauge({
         name: `${prefix}_${METRIC_FREE_MEMORY}`,

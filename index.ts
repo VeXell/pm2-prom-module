@@ -9,7 +9,7 @@ import { initMetrics, combineAllRegistries } from './metrics';
 const DEFAULT_PREFIX = 'pm2';
 
 const startPromServer = (prefix: string, port: string, serviceName?: string) => {
-    initMetrics(prefix, serviceName);
+    initMetrics(prefix);
 
     const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
         const mergedRegistry = combineAllRegistries();

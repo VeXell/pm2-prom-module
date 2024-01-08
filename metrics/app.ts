@@ -1,29 +1,13 @@
 import client from 'prom-client';
 import { AppResponse, IMetric, MetricType } from '../types';
 import { getLogger } from '../utils/logger';
+import { IHistogram } from './prom/histogram';
 
 type IAppPidMetric = Record<string, IMetric>;
 type IAppNameMetric = Record<string, IAppPidMetric>;
 const dynamicAppMetrics: { [key: string]: IAppNameMetric } = {};
 
 const DEFAULT_LABELS = ['app', 'instance'];
-
-const createMetricByType = (metric: IMetric, labels: string[]) => {
-    switch (metric.type) {
-        case MetricType.Counter:
-            const metricEntry = new client.Counter({
-                name: metric.name,
-                help: metric.help,
-                aggregator: metric.aggregator,
-                labelNames: [...DEFAULT_LABELS, ...labels],
-                registers: [],
-            });
-
-            return metricEntry;
-        default:
-            return null;
-    }
-};
 
 const parseLabels = (values: IMetric['values']) => {
     const labels = new Set<string>();
@@ -37,6 +21,48 @@ const parseLabels = (values: IMetric['values']) => {
     return Array.from<string>(labels);
 };
 
+const createMetricByType = (metric: IMetric, labels: string[]) => {
+    switch (metric.type) {
+        case MetricType.Counter: {
+            const metricEntry = new client.Counter({
+                name: metric.name,
+                help: metric.help,
+                aggregator: metric.aggregator,
+                labelNames: [...DEFAULT_LABELS, ...labels],
+                registers: [],
+            });
+
+            return metricEntry;
+        }
+        case MetricType.Gauge: {
+            const metricEntry = new client.Gauge({
+                name: metric.name,
+                help: metric.help,
+                aggregator: metric.aggregator,
+                labelNames: [...DEFAULT_LABELS, ...labels],
+                registers: [],
+            });
+
+            return metricEntry;
+        }
+        case MetricType.Histogram: {
+            const filteredMetrics = labels.filter((entry) => entry !== 'le');
+
+            const metricEntry = new IHistogram({
+                name: metric.name,
+                help: metric.help,
+                aggregator: metric.aggregator,
+                labelNames: [...DEFAULT_LABELS, ...filteredMetrics],
+                registers: [],
+            });
+
+            return metricEntry;
+        }
+        default:
+            return null;
+    }
+};
+
 const createRegistryMetrics = (registry: client.Registry) => {
     const logger = getLogger();
     const metrics: Record<string, client.Metric> = {};
@@ -46,7 +72,11 @@ const createRegistryMetrics = (registry: client.Registry) => {
             for (const [pm2id, metric] of Object.entries(pidEntry)) {
                 if (!metrics[metricName]) {
                     const parsedLabels = parseLabels(metric.values);
-                    metrics[metricName] = createMetricByType(metric, parsedLabels);
+                    const newMetricStore = createMetricByType(metric, parsedLabels);
+
+                    if (newMetricStore) {
+                        metrics[metricName] = newMetricStore;
+                    }
                 }
 
                 const createdMetric = metrics[metricName];
@@ -57,14 +87,14 @@ const createRegistryMetrics = (registry: client.Registry) => {
                     // Registry metric
                     registry.registerMetric(createdMetric);
 
+                    const defaultLabels: Record<string, string | number> = {
+                        app: appName,
+                        instance: pm2id,
+                    };
+
                     // Fill data
                     switch (metric.type) {
                         case MetricType.Counter:
-                            const defaultLabels: Record<string, string | number> = {
-                                app: appName,
-                                instance: pm2id,
-                            };
-
                             metric.values.forEach((entry) => {
                                 try {
                                     (createdMetric as client.Counter).inc(
@@ -77,8 +107,33 @@ const createRegistryMetrics = (registry: client.Registry) => {
                             });
 
                             break;
+                        case MetricType.Gauge:
+                            metric.values.forEach((entry) => {
+                                try {
+                                    (createdMetric as client.Gauge).inc(
+                                        { ...entry.labels, ...defaultLabels },
+                                        entry.value
+                                    );
+                                } catch (error) {
+                                    logger.error(error);
+                                }
+                            });
+
+                            break;
+                        case MetricType.Histogram:
+                            const values = metric.values.map((entry) => {
+                                const newEntry = { ...entry };
+                                const labels = { ...entry.labels, ...defaultLabels };
+
+                                newEntry.labels = labels;
+
+                                return newEntry;
+                            });
+
+                            (createdMetric as IHistogram).setValues(defaultLabels, values);
+                            break;
                         default:
-                            return null;
+                            break;
                     }
                 }
             }

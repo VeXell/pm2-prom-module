@@ -54,8 +54,8 @@ const detectActiveApps = () => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
             const appName = app.name;
 
-            if (!isMonitoringApp(app)) {
-                logger.debug(`Skip app ${appName}`);
+            if (!isMonitoringApp(app) || !appName || !app.pid) {
+                logger.debug(`Skip app ${app.name}`);
                 return;
             }
 
@@ -102,7 +102,7 @@ const detectActiveApps = () => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
             const appName = app.name;
 
-            if (!isMonitoringApp(app)) {
+            if (!isMonitoringApp(app) || !appName || !app.pid) {
                 return;
             }
 
@@ -121,9 +121,9 @@ const detectActiveApps = () => {
 
             const updateData: IPidDataInput = {
                 id: app.pid,
-                memory: app.monit.memory,
-                cpu: app.monit.cpu || 0,
-                pmId: app.pm_id,
+                memory: app.monit?.memory || 0,
+                cpu: app.monit?.cpu || 0,
+                pmId: app.pm_id!,
                 restartCount,
                 createdAt: pm2_env.created_at || 0,
                 metrics: pm2_env.axm_monitor,
@@ -165,6 +165,7 @@ export const startPm2Connect = (conf: IConfig) => {
             bus.on('process:msg', (packet: PM2BusResponse): void => {
                 if (
                     packet.process &&
+                    packet.raw &&
                     packet.raw.topic === 'pm2-prom-module:metrics' &&
                     packet.raw.data
                 ) {
@@ -177,8 +178,6 @@ export const startPm2Connect = (conf: IConfig) => {
                     );*/
 
                     if (name && APPS[name] && packet.raw.data.metrics) {
-                        //logger.debug(`Process message for the app ${name}`);
-
                         processAppMetrics(conf, {
                             pmId: pm_id,
                             appName: name,

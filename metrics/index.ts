@@ -3,7 +3,7 @@ import os from 'node:os';
 
 import { getCpuCount } from '../utils/cpu';
 
-import { appRegistry } from './app';
+import { getAppRegistry } from './app';
 
 const METRIC_FREE_MEMORY = 'free_memory';
 const METRIC_AVAILABLE_CPU = 'cpu_count';
@@ -39,7 +39,7 @@ export const initMetrics = (prefix: string, serviceName?: string) => {
 
     if (serviceName) {
         registry.setDefaultLabels({ serviceName });
-        appRegistry.setDefaultLabels({ serviceName });
+        //appRegistry.setDefaultLabels({ serviceName });
     }
 
     new client.Gauge({
@@ -134,7 +134,9 @@ export const initDynamicGaugeMetricClients = (metrics: { key: string; descriptio
     });
 };
 
-export const combineAllRegistries = () => {
+export const combineAllRegistries = (serviceName: string) => {
+    const appRegistry = getAppRegistry(serviceName);
+
     if (appRegistry) {
         return client.Registry.merge([registry, appRegistry]);
     } else {

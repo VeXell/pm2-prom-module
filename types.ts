@@ -23,6 +23,6 @@ export type PM2BusResponse = {
     process?: { namespace: string; name: string; pm_id: number };
     raw?: {
         topic: string;
-        data: AppResponse;
+        data?: AppResponse;
     };
 };

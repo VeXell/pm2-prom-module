@@ -2,65 +2,29 @@ import client from 'prom-client';
 import { AppResponse, IMetric, MetricType } from '../types';
 import { getLogger } from '../utils/logger';
 
-export const appRegistry = new client.Registry();
+type IAppPidMetric = Record<string, IMetric>;
+type IAppNameMetric = Record<string, IAppPidMetric>;
+const dynamicAppMetrics: { [key: string]: IAppNameMetric } = {};
 
-/*function aggregate(metricsArr) {
-    const metricsByName = new client.Grouper();
-
-    aggregatedRegistry.setContentType(registryType);
-
-    // Gather by name
-    metricsArr.forEach((metrics) => {
-        metrics.forEach((metric) => {
-            metricsByName.add(metric.name, metric);
-        });
-    });
-
-    // Aggregate gathered metrics.
-    metricsByName.forEach((metrics) => {
-        const aggregatorName = metrics[0].aggregator;
-        const aggregatorFn = aggregators[aggregatorName];
-        if (typeof aggregatorFn !== 'function') {
-            throw new Error(`'${aggregatorName}' is not a defined aggregator.`);
-        }
-        const aggregatedMetric = aggregatorFn(metrics);
-        // NB: The 'omit' aggregator returns undefined.
-        if (aggregatedMetric) {
-            const aggregatedMetricWrapper = Object.assign(
-                {
-                    get: () => aggregatedMetric,
-                },
-                aggregatedMetric
-            );
-            aggregatedRegistry.registerMetric(aggregatedMetricWrapper);
-        }
-    });
-
-    return aggregatedRegistry;
-}*/
-
-// type IAppPidMetric = Record<number, any>;
-const dynamicAppMetrics: { [key: string]: client.Metric } = {};
+const DEFAULT_LABELS = ['app', 'instance'];
 
 const createMetricByType = (metric: IMetric, labels: string[]) => {
-    const defaultLabels = ['app', 'instance'];
-
     switch (metric.type) {
         case MetricType.Counter:
             const metricEntry = new client.Counter({
                 name: metric.name,
                 help: metric.help,
-                registers: [appRegistry],
                 aggregator: metric.aggregator,
-                labelNames: [...defaultLabels, ...labels],
+                labelNames: [...DEFAULT_LABELS, ...labels],
+                registers: [],
             });
 
-            dynamicAppMetrics[metric.name] = metricEntry;
             return metricEntry;
         default:
             return null;
     }
 };
+
 const parseLabels = (values: IMetric['values']) => {
     const labels = new Set<string>();
 
@@ -73,6 +37,51 @@ const parseLabels = (values: IMetric['values']) => {
     return Array.from<string>(labels);
 };
 
+export const createRegistryMetrics = (registry: client.Registry) => {
+    const logger = getLogger();
+    const metrics: Record<string, client.Metric> = {};
+
+    for (const [, appEntry] of Object.entries(dynamicAppMetrics)) {
+        for (const [appName, pidEntry] of Object.entries(appEntry)) {
+            for (const [pm2id, metric] of Object.entries(pidEntry)) {
+                if (!metrics[metric.name]) {
+                    const parsedLabels = parseLabels(metric.values);
+                    metrics[metric.name] = createMetricByType(metric, parsedLabels);
+                }
+
+                const createdMetric = metrics[metric.name];
+
+                if (!createdMetric) {
+                    logger.error(`Unsupported metric type ${metric.type} for ${metric.name}`);
+                } else {
+                    // Registry metric
+                    registry.registerMetric(createdMetric);
+
+                    // Fill data
+                    switch (metric.type) {
+                        case MetricType.Counter:
+                            const defaultLabels: Record<string, string | number> = {
+                                app: appName,
+                                instance: pm2id,
+                            };
+
+                            metric.values.forEach((entry) => {
+                                (createdMetric as client.Counter).inc(
+                                    { ...entry.labels, ...defaultLabels },
+                                    entry.value
+                                );
+                            });
+
+                            break;
+                        default:
+                            return null;
+                    }
+                }
+            }
+        }
+    }
+};
+
 export const processAppMetrics = (
     _config: IConfig,
     data: { pmId: number; appName: string; appResponse: AppResponse }
@@ -81,23 +90,35 @@ export const processAppMetrics = (
         return;
     }
 
-    const logger = getLogger();
-
     data.appResponse.metrics.forEach((entry) => {
         if (Array.isArray(entry.values) && entry.values.length) {
             const metricName = entry.name;
-            let metric = dynamicAppMetrics[metricName];
 
-            if (!metric) {
-                const labels = parseLabels(entry.values);
-                metric = createMetricByType(entry, labels);
+            if (!dynamicAppMetrics[metricName]) {
+                dynamicAppMetrics[metricName] = {};
             }
 
-            if (metric) {
-                console.log(`${metricName}: ${data.pmId} values ${JSON.stringify(entry.values)}`);
-            } else {
-                logger.error(`Unsupported metric type ${entry.type}`);
+            const appKey = dynamicAppMetrics[metricName][data.appName];
+
+            if (!appKey) {
+                dynamicAppMetrics[metricName][data.appName] = {};
             }
+
+            const pm2id = String(data.pmId);
+            dynamicAppMetrics[metricName][data.appName][pm2id] = entry;
         }
     });
+};
+
+export const getAppRegistry = (serviceName: string) => {
+    if (Object.keys(dynamicAppMetrics).length) {
+        const registry = new client.Registry();
+        registry.setDefaultLabels({ serviceName });
+
+        createRegistryMetrics(registry);
+
+        return registry;
+    }
+
+    return undefined;
 };

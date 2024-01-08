@@ -1,7 +1,7 @@
 import { AxmMonitor } from 'pm2';
 import { toUndescore } from '../utils';
 
-type IPidDataInput = {
+export type IPidDataInput = {
     id: number;
     pmId: number;
     memory: number;
@@ -72,7 +72,7 @@ export class App {
                 pmId: pidData.pmId,
                 memory: [pidData.memory],
                 cpu: [pidData.cpu],
-                restartCount: 0,
+                restartCount: pidData.restartCount,
                 metrics: this.fillMetricsData(pidData.metrics),
             };
         } else {

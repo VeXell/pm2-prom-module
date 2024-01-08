@@ -12,7 +12,9 @@ const startPromServer = (prefix: string, port: string, serviceName?: string) => 
     initMetrics(prefix, serviceName);
 
     const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
-        const mergedRegistry = combineAllRegistries(serviceName);
+        const mergedRegistry = combineAllRegistries();
+        mergedRegistry.setDefaultLabels({ serviceName });
+
         res.setHeader('Content-Type', mergedRegistry.contentType);
         res.end(await mergedRegistry.metrics());
 

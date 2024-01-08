@@ -123,10 +123,9 @@ export const processAppMetrics = (
     });
 };
 
-export const getAppRegistry = (serviceName: string) => {
+export const getAppRegistry = () => {
     if (Object.keys(dynamicAppMetrics).length) {
         const registry = new client.Registry();
-        registry.setDefaultLabels({ serviceName });
 
         createRegistryMetrics(registry);
 

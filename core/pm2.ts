@@ -1,6 +1,6 @@
 import pm2 from 'pm2';
 
-import { App, PM2_METRICS } from './app';
+import { App, IPidDataInput, PM2_METRICS } from './app';
 import { toUndescore } from '../utils';
 import { PM2BusResponse } from '../types';
 
@@ -54,7 +54,7 @@ const detectActiveApps = () => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
             const appName = app.name;
 
-            if (isMonitoringApp(app)) {
+            if (!isMonitoringApp(app)) {
                 logger.debug(`Skip app ${appName}`);
                 return;
             }
@@ -88,7 +88,9 @@ const detectActiveApps = () => {
                         .getRestartCount()
                         .reduce((accum, item) => accum + item.value, 0);
 
-                    if (pidsRestartsSum !== allAppsPids[appName].restartsSum) {
+                    if (allAppsPids[appName].restartsSum > pidsRestartsSum) {
+                        // Reset metrics when active restart app bigger then active app
+                        // This logic exist to prevent autoscaling problems if we use only !==
                         logger.debug(`App ${appName} has been restarted. Clear metrics`);
                         deleteAppMetrics(appName);
                     }
@@ -100,7 +102,7 @@ const detectActiveApps = () => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
             const appName = app.name;
 
-            if (isMonitoringApp(app)) {
+            if (!isMonitoringApp(app)) {
                 return;
             }
 
@@ -117,7 +119,7 @@ const detectActiveApps = () => {
 
             const restartCount = pm2_env.restart_time || 0;
 
-            workingApp.updatePid({
+            const updateData: IPidDataInput = {
                 id: app.pid,
                 memory: app.monit.memory,
                 cpu: app.monit.cpu || 0,
@@ -125,7 +127,9 @@ const detectActiveApps = () => {
                 restartCount,
                 createdAt: pm2_env.created_at || 0,
                 metrics: pm2_env.axm_monitor,
-            });
+            };
+
+            workingApp.updatePid(updateData);
 
             // Collect metrics
             processWorkingApp(workingApp);
@@ -166,14 +170,14 @@ export const startPm2Connect = (conf: IConfig) => {
                 ) {
                     const { name, pm_id } = packet.process;
 
-                    logger.debug(
+                    /*logger.debug(
                         `Got message from app=${name} and pid=${pm_id}. Message=${JSON.stringify(
                             packet.raw.data
                         )}`
-                    );
+                    );*/
 
                     if (name && APPS[name] && packet.raw.data.metrics) {
-                        logger.debug(`Process message for the app ${name}`);
+                        //logger.debug(`Process message for the app ${name}`);
 
                         processAppMetrics(conf, {
                             pmId: pm_id,

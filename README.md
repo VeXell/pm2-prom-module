@@ -135,13 +135,11 @@ pm2_app_total_memory{app="app",serviceName="my-app"} 121626624
 
 # HELP pm2_event_loop_latency_p95 Event Loop Latency p95. Unit "ms"
 # TYPE pm2_event_loop_latency_p95 gauge
-pm2_event_loop_latency_p95{app="app",instance="1",serviceName="my-app"} 2.55
-pm2_event_loop_latency_p95{app="app",instance="2",serviceName="my-app"} 2.48
+pm2_event_loop_latency_p95{app="app",instance="13",serviceName="my-app"} 2.55
+pm2_event_loop_latency_p95{app="app",instance="14",serviceName="my-app"} 2.48
 
 # HELP nodejs_app_request_counter Show total request count
 # TYPE nodejs_app_request_counter counter
 nodejs_app_request_counter{app="app",instance="13",serviceName="my-app"} 10
 nodejs_app_request_counter{app="app",instance="14",serviceName="my-app"} 17
-nodejs_app_request_counter{app="app",instance="15",serviceName="my-app"} 9
-nodejs_app_request_counter{app="app",instance="16",serviceName="my-app"} 7
 ```

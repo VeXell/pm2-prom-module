@@ -2,6 +2,8 @@
 
 PM2 module to help collect applications statistic and send it to Prometheus server
 
+**NEW**: Starting from version 2.0.0, the plugin now supports the collection of all your Prometheus metrics from the running applications across multiple instances.
+
 ## Motivation
 
 Most of applications use Prometheus monitoring server to collect statistic and then show it on Grafana dashboard. PM2 gives you a way to monitor the resource usage of your application but unfortunately most of information is available from your terminal or with PM2 Plus dashboard. To solve this isses you should use additional module to export statistic data.
@@ -12,7 +14,7 @@ Also if you use [PM2-AutoScale](https://www.npmjs.com/package/pm2-autoscale) mod
 
 This module `pm2-prom-module` allows you to collect all PM2 monitoring data such as `CPU Usage`, `Memory Usage` and etc for your every applications and run HTTP server inside module to collect all metrics.
 
-### Collected statistic
+### PM collected statistic
 
 -   Free memory
 -   CPUs count
@@ -68,6 +70,42 @@ pm2 set pm2-prom-module:port 10801
 pm2 set pm2-prom-module:service_name MyApp
 ```
 
+## How to collect your own metrics from apps
+
+As of plugin version `2.0.0`, it enables the collection of metrics from all currently running applications in PM2, presenting them in a unified output alongside other PM2 metrics.
+
+To communicate between PM2 nodejs application and `pm2-prom-module`you can use [pm2-prom-module-client](https://www.npmjs.com/package/pm2-prom-module-client) which is using process messaging bus between module and an app.
+
+Here an example how to use it:
+
+```typescript
+import client from 'prom-client';
+import { initMetrics } from 'pm2-prom-module-client';
+
+const registry = new client.Registry();
+const PREFIX = `nodejs_app_`;
+
+const metricRequestCounter = new client.Counter({
+    name: `${PREFIX}request_counter`,
+    help: 'Show total request count',
+    registers: [registry],
+});
+
+// Register your prom-client Registry
+initMetrics(registry);
+
+// ...
+app.get('/*', async (req: AppFastifyRequest, res) => {
+    // ...
+    metricRequestCounter?.inc();
+    // ...
+});
+```
+
+Plugin automatically collect metrics from all running instances of apps and all metrics will be available on the same endpoint with `pm2-prom-module`. Have a look on an example below.
+
+Also you can add any of your own labels for any of `prom-client` counters, but `app`, and `instance` are reserved for plugin and will be overwritten.
+
 ## Example output
 
 ```bash
@@ -99,4 +137,11 @@ pm2_app_total_memory{app="app",serviceName="my-app"} 121626624
 # TYPE pm2_event_loop_latency_p95 gauge
 pm2_event_loop_latency_p95{app="app",instance="1",serviceName="my-app"} 2.55
 pm2_event_loop_latency_p95{app="app",instance="2",serviceName="my-app"} 2.48
+
+# HELP nodejs_app_request_counter Show total request count
+# TYPE nodejs_app_request_counter counter
+nodejs_app_request_counter{app="app",instance="13",serviceName="my-app"} 10
+nodejs_app_request_counter{app="app",instance="14",serviceName="my-app"} 17
+nodejs_app_request_counter{app="app",instance="15",serviceName="my-app"} 9
+nodejs_app_request_counter{app="app",instance="16",serviceName="my-app"} 7
 ```

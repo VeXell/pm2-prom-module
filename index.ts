@@ -4,16 +4,20 @@ import { createServer, ServerResponse, IncomingMessage } from 'http';
 
 import { startPm2Connect } from './core/pm2';
 import { initLogger } from './utils/logger';
-import { registry as promClient, initMetrics } from './utils/metrics';
+import { initMetrics, combineAllRegistries } from './metrics';
 
 const DEFAULT_PREFIX = 'pm2';
 
 const startPromServer = (prefix: string, port: string, serviceName?: string) => {
-    initMetrics(prefix, serviceName);
+    initMetrics(prefix);
 
     const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
-        res.setHeader('Content-Type', promClient.contentType);
-        res.end(await promClient.metrics());
+        const mergedRegistry = combineAllRegistries();
+        mergedRegistry.setDefaultLabels({ serviceName });
+
+        res.setHeader('Content-Type', mergedRegistry.contentType);
+        res.end(await mergedRegistry.metrics());
+
         return;
     });
 

@@ -19,7 +19,7 @@ class SimpleLogger {
 
     info(message: string) {
         const value = `INFO: ${message}`;
-        this.logError(value);
+        this.log(value);
     }
 
     private log(message: string) {

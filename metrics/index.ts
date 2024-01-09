@@ -1,6 +1,9 @@
 import client from 'prom-client';
 import os from 'node:os';
-import { getCpuCount } from './cpu';
+
+import { getCpuCount } from '../utils/cpu';
+
+import { getAppRegistry } from './app';
 
 const METRIC_FREE_MEMORY = 'free_memory';
 const METRIC_AVAILABLE_CPU = 'cpu_count';
@@ -27,15 +30,12 @@ export let metricAppUptime: client.Gauge | undefined;
 export let metricAppPidsMemory: client.Gauge | undefined;
 
 let currentPrefix = '';
+
 export const dynamicGaugeMetricClients: { [key: string]: client.Gauge } = {};
 
 // Metrics
-export const initMetrics = (prefix: string, serviceName?: string) => {
+export const initMetrics = (prefix: string) => {
     currentPrefix = prefix;
-
-    if (serviceName) {
-        registry.setDefaultLabels({ serviceName });
-    }
 
     new client.Gauge({
         name: `${prefix}_${METRIC_FREE_MEMORY}`,
@@ -127,4 +127,14 @@ export const initDynamicGaugeMetricClients = (metrics: { key: string; descriptio
             labelNames: ['app', 'instance'],
         });
     });
+};
+
+export const combineAllRegistries = () => {
+    const appRegistry = getAppRegistry();
+
+    if (appRegistry) {
+        return client.Registry.merge([registry, appRegistry]);
+    } else {
+        return registry;
+    }
 };

@@ -6,7 +6,7 @@
         // "moduleResolution": "Node16",
         "rootDir": "./",
         "allowSyntheticDefaultImports": true,
-        "importHelpers": true,
+        "importHelpers": false,
         "alwaysStrict": true,
         "sourceMap": false,
         "forceConsistentCasingInFileNames": true,
@@ -16,7 +16,7 @@
         "noUnusedParameters": true,
         "noImplicitAny": false,
         "noImplicitThis": false,
-        "strictNullChecks": false
+        "strictNullChecks": true
     },
     "exclude": ["node_modules"]
 }

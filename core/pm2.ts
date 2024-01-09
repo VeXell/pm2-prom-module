@@ -84,6 +84,12 @@ const detectActiveApps = () => {
                 const workingApp = APPS[appName];
 
                 if (workingApp) {
+                    const activePids = allAppsPids[appName].pids;
+
+                    if (activePids) {
+                        workingApp.removeNotActivePids(activePids);
+                    }
+
                     const pidsRestartsSum = workingApp
                         .getRestartCount()
                         .reduce((accum, item) => accum + item.value, 0);
@@ -111,20 +117,13 @@ const detectActiveApps = () => {
             }
 
             const workingApp = APPS[appName];
-            const activePids = allAppsPids[appName].pids;
-
-            if (activePids) {
-                workingApp.removeNotActivePids(activePids);
-            }
-
-            const restartCount = pm2_env.restart_time || 0;
 
             const updateData: IPidDataInput = {
                 id: app.pid,
                 memory: app.monit?.memory || 0,
                 cpu: app.monit?.cpu || 0,
                 pmId: app.pm_id!,
-                restartCount,
+                restartCount: pm2_env.restart_time || 0,
                 createdAt: pm2_env.created_at || 0,
                 metrics: pm2_env.axm_monitor,
             };

@@ -1,6 +1,6 @@
 {
     "name": "pm2-prom-module",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "PM2 module to help collect applications statistic and send it to Prometheus server",
     "main": "index.js",
     "dependencies": {

@@ -129,8 +129,8 @@ export const initDynamicGaugeMetricClients = (metrics: { key: string; descriptio
     });
 };
 
-export const combineAllRegistries = () => {
-    const appRegistry = getAppRegistry();
+export const combineAllRegistries = (needAggregate: boolean) => {
+    const appRegistry = getAppRegistry(needAggregate);
 
     if (appRegistry) {
         return client.Registry.merge([registry, appRegistry]);

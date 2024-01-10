@@ -61,6 +61,7 @@ Default settings:
 -   `port` Connection port for Prometheus agent. (default to `9988`)
 -   `service_name` Default label for registry (default to `` - empty string)
 -   `debug` Enable debug mode to show logs from the module (default to `false`)
+-   `aggregate_app_metrics` Enable to aggregate metrics from app instances(default to `true`)
 
 To modify the module config values you can use the following commands:
 
@@ -68,6 +69,7 @@ To modify the module config values you can use the following commands:
 pm2 set pm2-prom-module:debug true
 pm2 set pm2-prom-module:port 10801
 pm2 set pm2-prom-module:service_name MyApp
+pm2 set pm2-prom-module:aggregate_app_metrics true
 ```
 
 ## How to collect your own metrics from apps
@@ -106,6 +108,22 @@ Plugin automatically collect metrics from all running instances of apps and all 
 
 Also you can add any of your own labels for any of `prom-client` counters, but `app`, and `instance` are reserved for plugin and will be overwritten.
 
+Since version `2.1.0` module support aggregation data for all instances by default.
+But you can disable it with module configuration.
+
+```bash
+pm2 set pm2-prom-module:aggregate_app_metrics false
+```
+
+Aggregated data from all running apps:
+
+```bash
+# HELP nodejs_app_requests_total Show total request count
+# TYPE nodejs_app_requests_total counter
+nodejs_app_requests_total{app="app",serviceName="MyApp"} 8
+nodejs_app_requests_total{app="app2",serviceName="MyApp"} 3
+```
+
 ## Example output
 
 ```bash
@@ -138,8 +156,8 @@ pm2_app_total_memory{app="app",serviceName="my-app"} 121626624
 pm2_event_loop_latency_p95{app="app",instance="13",serviceName="my-app"} 2.55
 pm2_event_loop_latency_p95{app="app",instance="14",serviceName="my-app"} 2.48
 
-# HELP nodejs_app_request_counter Show total request count
-# TYPE nodejs_app_request_counter counter
-nodejs_app_request_counter{app="app",instance="13",serviceName="my-app"} 10
-nodejs_app_request_counter{app="app",instance="14",serviceName="my-app"} 17
+# HELP nodejs_app_requests_total Show total request count
+# TYPE nodejs_app_requests_total counter
+nodejs_app_requests_total{app="app",instance="13",serviceName="my-app"} 10
+nodejs_app_requests_total{app="app",instance="14",serviceName="my-app"} 17
 ```

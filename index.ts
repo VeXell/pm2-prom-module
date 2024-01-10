@@ -8,11 +8,14 @@ import { initMetrics, combineAllRegistries } from './metrics';
 
 const DEFAULT_PREFIX = 'pm2';
 
-const startPromServer = (prefix: string, port: string, serviceName?: string) => {
+const startPromServer = (prefix: string, moduleConfig: IConfig) => {
     initMetrics(prefix);
 
+    const serviceName = moduleConfig.service_name;
+    const port = moduleConfig.port;
+
     const promServer = createServer(async (_req: IncomingMessage, res: ServerResponse) => {
-        const mergedRegistry = combineAllRegistries();
+        const mergedRegistry = combineAllRegistries(Boolean(moduleConfig.aggregate_app_metrics));
         mergedRegistry.setDefaultLabels({ serviceName });
 
         res.setHeader('Content-Type', mergedRegistry.contentType);
@@ -46,12 +49,16 @@ pmx.initModule(
 
         initLogger({ isDebug: moduleConfig.debug });
         startPm2Connect(moduleConfig);
-        startPromServer(DEFAULT_PREFIX, moduleConfig.port, moduleConfig.service_name);
+        startPromServer(DEFAULT_PREFIX, moduleConfig);
 
         pmx.configureModule({
             human_info: [
                 ['Status', 'Module enabled'],
                 ['Debug', moduleConfig.debug ? 'Enabled' : 'Disabled'],
+                [
+                    'Aggregate apps metrics',
+                    moduleConfig.aggregate_app_metrics ? 'Enabled' : 'Disabled',
+                ],
                 ['Port', moduleConfig.port],
                 ['Service name', moduleConfig.service_name ? moduleConfig.service_name : `N/A`],
             ],

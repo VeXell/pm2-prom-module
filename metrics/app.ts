@@ -1,4 +1,4 @@
-import client from 'prom-client';
+import client, { PrometheusContentType } from 'prom-client';
 import { AppResponse, IMetric, MetricType } from '../types';
 import { getLogger } from '../utils/logger';
 import { IHistogram } from './prom/histogram';
@@ -153,6 +153,31 @@ const createRegistryMetrics = (registry: client.Registry) => {
     }
 };
 
+const getAggregatedMetrics = () => {
+    const metrics: IMetric[][] = [];
+
+    for (const [appName, appEntry] of Object.entries(dynamicAppMetrics)) {
+        for (const [_metricName, pidEntry] of Object.entries(appEntry)) {
+            const pidMetrics: IMetric[] = [];
+
+            for (const [_pm2id, metric] of Object.entries(pidEntry)) {
+                const metricWithApp = { ...metric };
+
+                metricWithApp.values = metricWithApp.values.map((entry) => {
+                    entry.labels['app'] = appName;
+                    return entry;
+                });
+
+                pidMetrics.push(metricWithApp);
+            }
+
+            metrics.push(pidMetrics);
+        }
+    }
+
+    return client.AggregatorRegistry.aggregate<PrometheusContentType>(metrics);
+};
+
 export const deleteAppMetrics = (appName: string) => {
     const logger = getLogger();
 
@@ -190,13 +215,15 @@ export const processAppMetrics = (
     });
 };
 
-export const getAppRegistry = () => {
+export const getAppRegistry = (needAggregate: boolean) => {
     if (Object.keys(dynamicAppMetrics).length) {
-        const registry = new client.Registry();
-
-        createRegistryMetrics(registry);
-
-        return registry;
+        if (needAggregate) {
+            return getAggregatedMetrics();
+        } else {
+            const registry = new client.Registry();
+            createRegistryMetrics(registry);
+            return registry;
+        }
     }
 
     return undefined;

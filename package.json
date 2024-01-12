@@ -1,6 +1,6 @@
 {
     "name": "pm2-prom-module",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "PM2 module to help collect applications statistic and send it to Prometheus server",
     "main": "index.js",
     "dependencies": {
@@ -20,7 +20,7 @@
     "apps": [
         {
             "merge_logs": true,
-            "max_memory_restart": "100M",
+            "max_memory_restart": "256M",
             "script": "index.js"
         }
     ],

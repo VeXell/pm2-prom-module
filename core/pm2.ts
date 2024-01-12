@@ -12,10 +12,11 @@ import {
     metricAppAverageMemory,
     metricAppTotalMemory,
     metricAppAverageCpu,
-    metricAppPidsCpu,
+    metricAppPidsCpuLast,
     metricAppRestartCount,
     metricAppUptime,
     metricAppPidsMemory,
+    metricAppPidsCpuThreshold,
 } from '../metrics';
 
 import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
@@ -205,19 +206,23 @@ function processWorkingApp(workingApp: App) {
     metricAppAverageCpu?.set(labels, workingApp.getAverageCpu());
     metricAppUptime?.set(labels, workingApp.getUptime());
 
-    workingApp.getCurrentPidsCpu().map((entry) => {
-        metricAppPidsCpu?.set({ ...labels, instance: entry.pmId }, entry.value);
+    workingApp.getCurrentPidsCpu().forEach((entry) => {
+        metricAppPidsCpuLast?.set({ ...labels, instance: entry.pmId }, entry.value);
     });
 
-    workingApp.getCurrentPidsMemory().map((entry) => {
+    workingApp.getCpuThreshold().forEach((entry) => {
+        metricAppPidsCpuThreshold?.set({ ...labels, instance: entry.pmId }, entry.value);
+    });
+
+    workingApp.getCurrentPidsMemory().forEach((entry) => {
         metricAppPidsMemory?.set({ ...labels, instance: entry.pmId }, entry.value);
     });
 
-    workingApp.getRestartCount().map((entry) => {
+    workingApp.getRestartCount().forEach((entry) => {
         metricAppRestartCount?.set({ ...labels, instance: entry.pmId }, entry.value);
     });
 
-    workingApp.getPidPm2Metrics().map((entry) => {
+    workingApp.getPidPm2Metrics().forEach((entry) => {
         Object.keys(entry.metrics).forEach((metricKey) => {
             if (dynamicGaugeMetricClients[metricKey]) {
                 dynamicGaugeMetricClients[metricKey].set(

@@ -14,6 +14,7 @@ const METRIC_APP_PIDS_MEMORY = 'app_pids_memory';
 const METRIC_APP_TOTAL_MEMORY = 'app_total_memory';
 const METRIC_APP_AVERAGE_CPU = 'app_average_cpu';
 const METRIC_APP_PIDS_CPU = 'app_pids_cpu';
+const METRIC_APP_PIDS_CPU_THRESHOLD = 'app_pids_cpu_threshold';
 const METRIC_APP_RESTART_COUNT = 'app_restart_count';
 const METRIC_APP_UPTIME = 'app_uptime';
 
@@ -24,7 +25,8 @@ export let metricAppInstances: client.Gauge | undefined;
 export let metricAppAverageMemory: client.Gauge | undefined;
 export let metricAppTotalMemory: client.Gauge | undefined;
 export let metricAppAverageCpu: client.Gauge | undefined;
-export let metricAppPidsCpu: client.Gauge | undefined;
+export let metricAppPidsCpuLast: client.Gauge | undefined;
+export let metricAppPidsCpuThreshold: client.Gauge | undefined;
 export let metricAppRestartCount: client.Gauge | undefined;
 export let metricAppUptime: client.Gauge | undefined;
 export let metricAppPidsMemory: client.Gauge | undefined;
@@ -89,9 +91,16 @@ export const initMetrics = (prefix: string) => {
         labelNames: ['app'],
     });
 
-    metricAppPidsCpu = new client.Gauge({
+    metricAppPidsCpuLast = new client.Gauge({
         name: `${prefix}_${METRIC_APP_PIDS_CPU}`,
-        help: 'Show current usage CPU for every app instance',
+        help: 'Show current (last) usage CPU for every app instance',
+        registers: [registry],
+        labelNames: ['app', 'instance'],
+    });
+
+    metricAppPidsCpuThreshold = new client.Gauge({
+        name: `${prefix}_${METRIC_APP_PIDS_CPU_THRESHOLD}`,
+        help: 'Show average CPU for every app instance to detect autoscale if module exists',
         registers: [registry],
         labelNames: ['app', 'instance'],
     });

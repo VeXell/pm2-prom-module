@@ -171,6 +171,24 @@ export class App {
         return values;
     }
 
+    getCpuThreshold() {
+        const values: { pid: string; value: number; pmId: number }[] = [];
+
+        for (const [pid, entry] of Object.entries(this.pids)) {
+            const value = Math.round(
+                entry.cpu.reduce((sum, value) => sum + value) / entry.cpu.length
+            );
+
+            values.push({
+                pid,
+                pmId: entry.pmId,
+                value: value,
+            });
+        }
+
+        return values;
+    }
+
     getTotalUsedMemory() {
         const memoryValues: number[] = [];
 

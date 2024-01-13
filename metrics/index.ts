@@ -150,21 +150,14 @@ export const combineAllRegistries = (needAggregate: boolean) => {
     }
 };
 
-export const deletePromAppMetrics = (appName: string) => {
+export const deletePromAppMetrics = (appName: string, instances: number[]) => {
     metricAppInstances?.remove(appName);
     metricAppAverageMemory?.remove(appName);
     metricAppTotalMemory?.remove(appName);
     metricAppAverageCpu?.remove(appName);
     metricAppUptime?.remove(appName);
 
-    metricAppPidsCpuLast?.remove(appName);
-    metricAppPidsCpuThreshold?.remove(appName);
-    metricAppRestartCount?.remove(appName);
-    metricAppPidsMemory?.remove(appName);
-
-    for (const [, entry] of Object.entries(dynamicGaugeMetricClients)) {
-        entry?.remove(appName);
-    }
+    deletePromAppInstancesMetrics(appName, instances);
 };
 
 export const deletePromAppInstancesMetrics = (appName: string, instances: number[]) => {

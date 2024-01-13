@@ -1,4 +1,5 @@
 import pm2 from 'pm2';
+import pidusage from 'pidusage';
 
 import { App, IPidDataInput, PM2_METRICS } from './app';
 import { toUndescore } from '../utils';
@@ -25,7 +26,10 @@ import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
 
 import { getLogger } from '../utils/logger';
 
+type IPidsData = Record<number, IPidDataInput>;
+
 const WORKER_CHECK_INTERVAL = 1000;
+const SHOW_STAT_INTERVAL = 10000;
 
 const APPS: { [key: string]: App } = {};
 
@@ -45,49 +49,76 @@ const isMonitoringApp = (app: pm2.ProcessDescription) => {
     return true;
 };
 
+const updateAppPidsData = (workingApp: App, pidData: IPidDataInput) => {
+    workingApp.updatePid({
+        id: pidData.id,
+        memory: pidData.memory,
+        cpu: pidData.cpu || 0,
+        pmId: pidData.pmId,
+        restartCount: pidData.restartCount,
+        createdAt: pidData.createdAt,
+        metrics: pidData.metrics,
+    });
+};
+
 const detectActiveApps = () => {
     const logger = getLogger();
 
     pm2.list((err, apps) => {
         if (err) return console.error(err.stack || err);
 
-        const allAppsPids: { [key: string]: { pids: number[]; restartsSum: number } } = {};
+        const pidsMonit: IPidsData = {};
+        const mapAppPids: { [key: string]: { pids: number[]; restartsSum: number } } = {};
 
         apps.forEach((app) => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
             const appName = app.name;
 
-            if (!isMonitoringApp(app) || !appName || !app.pid) {
-                logger.debug(`Skip app ${app.name}`);
+            if (!isMonitoringApp(app) || !appName || !app.pid || app.pm_id === undefined) {
                 return;
             }
 
             // Fill all apps pids
-            if (!allAppsPids[appName]) {
-                allAppsPids[appName] = {
+            if (!mapAppPids[appName]) {
+                mapAppPids[appName] = {
                     pids: [],
                     restartsSum: 0,
                 };
             }
 
-            allAppsPids[appName].pids.push(app.pid);
-            allAppsPids[appName].restartsSum =
-                allAppsPids[appName].restartsSum + Number(pm2_env.restart_time || 0);
+            mapAppPids[appName].pids.push(app.pid);
+            mapAppPids[appName].restartsSum =
+                mapAppPids[appName].restartsSum + Number(pm2_env.restart_time || 0);
+
+            // Fill monitoring data
+            pidsMonit[app.pid] = {
+                cpu: 0,
+                memory: 0,
+                pmId: app.pm_id,
+                id: app.pid,
+                restartCount: pm2_env.restart_time || 0,
+                createdAt: pm2_env.created_at || 0,
+                metrics: pm2_env.axm_monitor,
+            };
         });
 
         Object.keys(APPS).forEach((appName) => {
-            const processingApp = allAppsPids[appName];
+            const processingApp = mapAppPids[appName];
 
             // Filters apps which do not have active pids
             if (!processingApp) {
                 logger.debug(`Delete ${appName} because it not longer exists`);
-                delete APPS[appName];
+
+                const workingApp = APPS[appName];
+                const instances = workingApp.getActivePm2Ids();
 
                 // Clear app metrics
                 deleteAppMetrics(appName);
 
                 // Clear all metrics in prom-client because an app is not exists anymore
-                deletePromAppMetrics(appName);
+                deletePromAppMetrics(appName, instances);
+
+                delete APPS[appName];
             } else {
                 const workingApp = APPS[appName];
 
@@ -115,35 +146,51 @@ const detectActiveApps = () => {
             }
         });
 
-        apps.forEach((app) => {
-            const pm2_env = app.pm2_env as pm2.Pm2Env;
-            const appName = app.name;
-
-            if (!isMonitoringApp(app) || !appName || !app.pid) {
-                return;
-            }
-
-            if (!APPS[appName]) {
+        for (const [appName, entry] of Object.entries(mapAppPids)) {
+            if (entry.pids.length && !APPS[appName]) {
                 APPS[appName] = new App(appName);
             }
+        }
 
-            const workingApp = APPS[appName];
+        // Get all pids to monit
+        const pids = Object.keys(pidsMonit);
 
-            const updateData: IPidDataInput = {
-                id: app.pid,
-                memory: app.monit?.memory || 0,
-                cpu: app.monit?.cpu || 0,
-                pmId: app.pm_id!,
-                restartCount: pm2_env.restart_time || 0,
-                createdAt: pm2_env.created_at || 0,
-                metrics: pm2_env.axm_monitor,
-            };
+        if (pids.length) {
+            // Get real pids data.
+            // !ATTENTION! Can not use PM2 app.monit because of incorrect values of CPU usage
+            pidusage(pids, (err, stats) => {
+                if (err) return console.error(err.stack || err);
 
-            workingApp.updatePid(updateData);
+                // Fill data for all pids
+                if (stats && Object.keys(stats).length) {
+                    for (const [pid, stat] of Object.entries(stats)) {
+                        const pidId = Number(pid);
 
-            // Collect metrics
-            processWorkingApp(workingApp);
-        });
+                        if (pidId && pidsMonit[pidId]) {
+                            pidsMonit[pidId].cpu = Math.round(stat.cpu * 10) / 10;
+                            pidsMonit[pidId].memory = stat.memory;
+                        }
+                    }
+                }
+
+                for (const [appName, entry] of Object.entries(mapAppPids)) {
+                    const workingApp = APPS[appName];
+
+                    if (workingApp) {
+                        entry.pids.forEach((pidId) => {
+                            const monit = pidsMonit[pidId];
+
+                            if (monit) {
+                                updateAppPidsData(workingApp, monit);
+                            }
+                        });
+
+                        // Collect metrics
+                        processWorkingApp(workingApp);
+                    }
+                }
+            });
+        }
     });
 };
 
@@ -202,6 +249,24 @@ export const startPm2Connect = (conf: IConfig) => {
         setInterval(() => {
             detectActiveApps();
         }, WORKER_CHECK_INTERVAL);
+
+        if (conf.debug) {
+            setInterval(() => {
+                if (Object.keys(APPS).length) {
+                    for (const [, app] of Object.entries(APPS)) {
+                        getLogger().debug(
+                            `App "${app.getName()}" has ${app.getActiveWorkersCount()} worker(s). CPU: ${app
+                                .getCpuThreshold()
+                                .map((entry) => entry.value)}, Memory: ${Math.round(
+                                app.getTotalUsedMemory() / 1024 / 1024
+                            )}MB`
+                        );
+                    }
+                } else {
+                    getLogger().debug(`No apps available`);
+                }
+            }, SHOW_STAT_INTERVAL);
+        }
     });
 };
 
@@ -254,7 +319,10 @@ function processWorkingApp(workingApp: App) {
                 id: pm2id,
             },
             (err) => {
-                if (err) return console.error(err.stack || err);
+                if (err)
+                    return console.error(
+                        `pm2-prom-module: sendDataToProcessId ${err.stack || err}`
+                    );
             }
         );
     });

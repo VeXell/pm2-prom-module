@@ -49,13 +49,18 @@ export class App {
     }
 
     removeNotActivePids(activePids: number[]) {
+        const removedValues: { pid: string; pmId: number }[] = [];
+
         Object.keys(this.pids).forEach((pid) => {
+            const pidData: IPidData = this.pids[pid];
+
             if (activePids.indexOf(Number(pid)) === -1) {
+                removedValues.push({ pid, pmId: pidData.pmId });
                 delete this.pids[pid];
             }
         });
 
-        return this;
+        return removedValues;
     }
 
     updatePid(pidData: IPidDataInput) {

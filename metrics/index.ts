@@ -91,6 +91,15 @@ export const initMetrics = (prefix: string) => {
         labelNames: ['app'],
     });
 
+    metricAppUptime = new client.Gauge({
+        name: `${prefix}_${METRIC_APP_UPTIME}`,
+        help: 'Show app uptime in seconds',
+        registers: [registry],
+        labelNames: ['app'],
+    });
+
+    // Metrics with instances
+
     metricAppPidsCpuLast = new client.Gauge({
         name: `${prefix}_${METRIC_APP_PIDS_CPU}`,
         help: 'Show current (last) usage CPU for every app instance',
@@ -110,13 +119,6 @@ export const initMetrics = (prefix: string) => {
         help: 'Show restart count of the app',
         registers: [registry],
         labelNames: ['app', 'instance'],
-    });
-
-    metricAppUptime = new client.Gauge({
-        name: `${prefix}_${METRIC_APP_UPTIME}`,
-        help: 'Show app uptime in seconds',
-        registers: [registry],
-        labelNames: ['app'],
     });
 
     metricAppPidsMemory = new client.Gauge({
@@ -146,4 +148,34 @@ export const combineAllRegistries = (needAggregate: boolean) => {
     } else {
         return registry;
     }
+};
+
+export const deletePromAppMetrics = (appName: string) => {
+    metricAppInstances?.remove(appName);
+    metricAppAverageMemory?.remove(appName);
+    metricAppTotalMemory?.remove(appName);
+    metricAppAverageCpu?.remove(appName);
+    metricAppUptime?.remove(appName);
+
+    metricAppPidsCpuLast?.remove(appName);
+    metricAppPidsCpuThreshold?.remove(appName);
+    metricAppRestartCount?.remove(appName);
+    metricAppPidsMemory?.remove(appName);
+
+    for (const [, entry] of Object.entries(dynamicGaugeMetricClients)) {
+        entry?.remove(appName);
+    }
+};
+
+export const deletePromAppInstancesMetrics = (appName: string, instances: number[]) => {
+    instances.forEach((pmId) => {
+        metricAppPidsCpuLast?.remove({ app: appName, instance: pmId });
+        metricAppPidsCpuThreshold?.remove({ app: appName, instance: pmId });
+        metricAppRestartCount?.remove({ app: appName, instance: pmId });
+        metricAppPidsMemory?.remove({ app: appName, instance: pmId });
+
+        for (const [, entry] of Object.entries(dynamicGaugeMetricClients)) {
+            entry?.remove({ app: appName, instance: pmId });
+        }
+    });
 };

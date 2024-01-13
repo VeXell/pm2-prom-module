@@ -17,6 +17,8 @@ import {
     metricAppUptime,
     metricAppPidsMemory,
     metricAppPidsCpuThreshold,
+    deletePromAppMetrics,
+    deletePromAppInstancesMetrics,
 } from '../metrics';
 
 import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
@@ -74,28 +76,36 @@ const detectActiveApps = () => {
         });
 
         Object.keys(APPS).forEach((appName) => {
+            const processingApp = allAppsPids[appName];
+
             // Filters apps which do not have active pids
-            if (!allAppsPids[appName]) {
+            if (!processingApp) {
                 logger.debug(`Delete ${appName} because it not longer exists`);
                 delete APPS[appName];
 
                 // Clear app metrics
                 deleteAppMetrics(appName);
+
+                // Clear all metrics in prom-client because an app is not exists anymore
+                deletePromAppMetrics(appName);
             } else {
                 const workingApp = APPS[appName];
 
                 if (workingApp) {
-                    const activePids = allAppsPids[appName].pids;
+                    const activePids = processingApp.pids;
 
-                    if (activePids) {
-                        workingApp.removeNotActivePids(activePids);
+                    const removedPids = workingApp.removeNotActivePids(activePids);
+
+                    if (removedPids.length) {
+                        const removedIntances = removedPids.map((entry) => entry.pmId);
+                        deletePromAppInstancesMetrics(appName, removedIntances);
                     }
 
                     const pidsRestartsSum = workingApp
                         .getRestartCount()
                         .reduce((accum, item) => accum + item.value, 0);
 
-                    if (allAppsPids[appName].restartsSum > pidsRestartsSum) {
+                    if (processingApp.restartsSum > pidsRestartsSum) {
                         // Reset metrics when active restart app bigger then active app
                         // This logic exist to prevent autoscaling problems if we use only !==
                         logger.debug(`App ${appName} has been restarted. Clear metrics`);

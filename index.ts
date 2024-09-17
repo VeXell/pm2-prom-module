@@ -61,6 +61,7 @@ pmx.initModule(
                 ],
                 ['Port', moduleConfig.port],
                 ['Service name', moduleConfig.service_name ? moduleConfig.service_name : `N/A`],
+                ['Check interval', `${moduleConfig.app_check_interval} ms`],
             ],
         });
     }

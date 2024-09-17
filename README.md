@@ -61,7 +61,8 @@ Default settings:
 -   `port` Connection port for Prometheus agent. (default to `9988`)
 -   `service_name` Default label for registry (default to `` - empty string)
 -   `debug` Enable debug mode to show logs from the module (default to `false`)
--   `aggregate_app_metrics` Enable to aggregate metrics from app instances(default to `true`)
+-   `aggregate_app_metrics` Enable to aggregate metrics from app instances (default to `true`)
+-   `app_check_interval` Interval to check available apps and collect statistic (default to `1000`)
 
 To modify the module config values you can use the following commands:
 
@@ -70,6 +71,7 @@ pm2 set pm2-prom-module:debug true
 pm2 set pm2-prom-module:port 10801
 pm2 set pm2-prom-module:service_name MyApp
 pm2 set pm2-prom-module:aggregate_app_metrics true
+pm2 set pm2-prom-module:app_check_interval 5000
 ```
 
 ## How to collect your own metrics from apps
@@ -161,3 +163,9 @@ pm2_event_loop_latency_p95{app="app",instance="14",serviceName="my-app"} 2.48
 nodejs_app_requests_total{app="app",instance="13",serviceName="my-app"} 10
 nodejs_app_requests_total{app="app",instance="14",serviceName="my-app"} 17
 ```
+
+## Change log
+
+### Version 2.3.1
+
+-   Add new config option `app_check_interval`. Interval to check available apps and collect statistic

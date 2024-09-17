@@ -164,6 +164,16 @@ nodejs_app_requests_total{app="app",instance="13",serviceName="my-app"} 10
 nodejs_app_requests_total{app="app",instance="14",serviceName="my-app"} 17
 ```
 
+## FAQ
+
+### How i can change `max-memory-restart`?
+
+You can install plugin and restart it with the command:
+
+```
+pm2 restart pm2-prom-module --max-memory-restart=3000M
+```
+
 ## Change log
 
 ### Version 2.3.1

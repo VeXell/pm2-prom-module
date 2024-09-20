@@ -59,6 +59,8 @@ pm2 uninstall pm2-prom-module
 Default settings:
 
 -   `port` Connection port for Prometheus agent. (default to `9988`)
+-   `hostname` Listen address. (default to `0.0.0.0`)
+-   `unix_socket_path` Set if you want to listen on unix socket (default to `` - empty string)
 -   `service_name` Default label for registry (default to `` - empty string)
 -   `debug` Enable debug mode to show logs from the module (default to `false`)
 -   `aggregate_app_metrics` Enable to aggregate metrics from app instances (default to `true`)
@@ -69,6 +71,7 @@ To modify the module config values you can use the following commands:
 ```bash
 pm2 set pm2-prom-module:debug true
 pm2 set pm2-prom-module:port 10801
+pm2 set pm2-prom-module:hostname 127.0.0.1
 pm2 set pm2-prom-module:service_name MyApp
 pm2 set pm2-prom-module:aggregate_app_metrics true
 pm2 set pm2-prom-module:app_check_interval 5000
@@ -175,6 +178,11 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 ```
 
 ## Change log
+
+### Version 2.3.2
+
+-   Add new config option `hostname`. Listen address. If you want to specify, for example, `localhost`, `127.0.0.1`
+-   Add new config option `unix_socket_path`. Run server on unix socket path.
 
 ### Version 2.3.1
 

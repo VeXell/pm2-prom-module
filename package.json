@@ -1,6 +1,6 @@
 {
     "name": "pm2-prom-module",
-    "version": "2.3.1",
+    "version": "2.3.2",
     "description": "PM2 module to help collect applications statistic and send it to Prometheus server",
     "main": "index.js",
     "dependencies": {
@@ -27,13 +27,15 @@
     ],
     "config": {
         "port": "9988",
+        "hostname": "0.0.0.0",
+        "unix_socket_path": "",
         "service_name": "",
         "debug": false,
         "aggregate_app_metrics": true,
         "app_check_interval": 1000
     },
     "devDependencies": {
-        "@types/node": "^18.19.4",
+        "@types/node": "^18.19.50",
         "@types/pidusage": "^2.0.5",
         "typescript": "^5.3.3"
     },

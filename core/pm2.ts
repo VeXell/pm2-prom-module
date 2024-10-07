@@ -128,12 +128,22 @@ const detectActiveApps = () => {
 
                 if (workingApp) {
                     const activePids = processingApp.pids;
-
                     const removedPids = workingApp.removeNotActivePids(activePids);
 
                     if (removedPids.length) {
                         const removedIntances = removedPids.map((entry) => entry.pmId);
+                        logger.debug(
+                            `App ${appName} clear metrics. Removed PIDs ${removedIntances.toString()}`
+                        );
                         deletePromAppInstancesMetrics(appName, removedIntances);
+
+                        if (!activePids.length) {
+                            // Delete app metrics because it does not have active PIDs anymore
+                            logger.debug(
+                                `App ${appName} does not have active PIDs. Clear app metrics`
+                            );
+                            deleteAppMetrics(appName);
+                        }
                     }
 
                     const pidsRestartsSum = workingApp
@@ -143,7 +153,7 @@ const detectActiveApps = () => {
                     if (processingApp.restartsSum > pidsRestartsSum) {
                         // Reset metrics when active restart app bigger then active app
                         // This logic exist to prevent autoscaling problems if we use only !==
-                        logger.debug(`App ${appName} has been restarted. Clear metrics`);
+                        logger.debug(`App ${appName} has been restarted. Clear app metrics`);
                         deleteAppMetrics(appName);
                     }
                 }

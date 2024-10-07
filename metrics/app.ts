@@ -182,7 +182,7 @@ export const deleteAppMetrics = (appName: string) => {
     const logger = getLogger();
 
     if (dynamicAppMetrics[appName]) {
-        logger.debug(`Remove metrics for app ${appName}`);
+        logger.debug(`Remove AppMetrics for app ${appName}`);
         delete dynamicAppMetrics[appName];
     }
 };

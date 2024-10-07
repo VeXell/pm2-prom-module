@@ -26,6 +26,7 @@ This module `pm2-prom-module` allows you to collect all PM2 monitoring data such
 -   Current CPU usage for every app instance
 -   Restarts count for every app instance
 -   Uptime for every app
+-   App status (0-unknown, 1-running, 2-pending, 3-stopped, 4-errored)
 
 Also collect all PM2 default metrics for every instance:
 

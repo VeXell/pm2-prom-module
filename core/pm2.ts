@@ -167,6 +167,9 @@ const detectActiveApps = () => {
             }
         }
 
+        // Update metric with available apps
+        metricAvailableApps?.set(Object.keys(APPS).length);
+
         // Get all pids to monit
         const pids = Object.keys(pidsMonit);
 
@@ -290,8 +293,6 @@ export const startPm2Connect = (conf: IConfig) => {
 };
 
 function processWorkingApp(workingApp: App) {
-    metricAvailableApps?.set(Object.keys(APPS).length);
-
     const labels = { app: workingApp.getName() };
 
     metricAppInstances?.set(labels, workingApp.getActiveWorkersCount());

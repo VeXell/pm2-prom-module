@@ -65,6 +65,8 @@ export const initMetrics = (prefix: string) => {
         registers: [registry],
     });
 
+    // Specific app metrics
+
     metricAppInstances = new client.Gauge({
         name: `${prefix}_${METRIC_APP_INSTANCES}`,
         help: 'Show app instances count',

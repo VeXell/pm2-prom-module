@@ -179,6 +179,12 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ## Change log
 
+### Version 2.4.0
+
+-   Add new metric `pm2_app_status` describes status of an app. (0-unknown,1-running,2-pending,3-stopped,4-errored)
+    All other metrics related to the app (not for pids) will be displayed. For example, `pm2_available_apps` will show app until
+    it will be deleted from the PM2 or `pm2_app_instances` will show 0 for `stopped` or `errored` status apps.
+
 ### Version 2.3.2
 
 -   Add new config option `hostname`. Listen address. If you want to specify, for example, `localhost`, `127.0.0.1`

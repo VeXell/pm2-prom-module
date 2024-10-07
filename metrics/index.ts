@@ -165,6 +165,7 @@ export const deletePromAppMetrics = (appName: string, instances: number[]) => {
     metricAppTotalMemory?.remove(appName);
     metricAppAverageCpu?.remove(appName);
     metricAppUptime?.remove(appName);
+    metricAppStatus?.remove(appName);
 
     deletePromAppInstancesMetrics(appName, instances);
 };

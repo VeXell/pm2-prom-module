@@ -150,9 +150,9 @@ const detectActiveApps = () => {
             }
         });
 
-        for (const [appName, entry] of Object.entries(mapAppPids)) {
-            // Create instances for new apps
-            if (entry.pids.length && !APPS[appName]) {
+        // Create instances for new apps
+        for (const [appName] of Object.entries(mapAppPids)) {
+            if (!APPS[appName]) {
                 APPS[appName] = new App(appName);
             }
         }
@@ -180,7 +180,6 @@ const detectActiveApps = () => {
                     const workingApp = APPS[appName];
 
                     if (workingApp) {
-                        console.log('Update status');
                         // Update status
                         workingApp.updateStatus(entry.status);
 
@@ -264,12 +263,12 @@ export const startPm2Connect = (conf: IConfig) => {
             setInterval(() => {
                 if (Object.keys(APPS).length) {
                     for (const [, app] of Object.entries(APPS)) {
+                        const cpuValues = app.getCpuThreshold().map((entry) => entry.value);
+                        const memory = Math.round(app.getTotalUsedMemory() / 1024 / 1024);
+                        const CPU = cpuValues.length ? cpuValues.toString() : '0';
+
                         getLogger().debug(
-                            `App "${app.getName()}" has ${app.getActiveWorkersCount()} worker(s). CPU: ${app
-                                .getCpuThreshold()
-                                .map((entry) => entry.value)}, Memory: ${Math.round(
-                                app.getTotalUsedMemory() / 1024 / 1024
-                            )}MB`
+                            `App "${app.getName()}" has ${app.getActiveWorkersCount()} worker(s). CPU: ${CPU}, Memory: ${memory}MB`
                         );
                     }
                 } else {

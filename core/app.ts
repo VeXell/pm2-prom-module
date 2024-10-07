@@ -146,12 +146,24 @@ export class App {
 
     getAverageUsedMemory() {
         const memoryValues = this.getAveragePidsMemory();
-        return Math.round(memoryValues.reduce((sum, value) => sum + value) / memoryValues.length);
+
+        if (memoryValues.length) {
+            return Math.round(
+                memoryValues.reduce((sum, value) => sum + value, 0) / memoryValues.length
+            );
+        }
+
+        return 0;
     }
 
     getAverageCpu() {
         const cpuValues = this.getAveragePidsCpu();
-        return Math.round(cpuValues.reduce((sum, value) => sum + value) / cpuValues.length);
+
+        if (cpuValues.length) {
+            return Math.round(cpuValues.reduce((sum, value) => sum + value, 0) / cpuValues.length);
+        }
+
+        return 0;
     }
 
     getRestartCount() {
@@ -215,7 +227,7 @@ export class App {
 
         for (const [pid, entry] of Object.entries(this.pids)) {
             const value = Math.round(
-                entry.cpu.reduce((sum, value) => sum + value) / entry.cpu.length
+                entry.cpu.reduce((sum, value) => sum + value, 0) / entry.cpu.length
             );
 
             values.push({
@@ -237,7 +249,7 @@ export class App {
                 memoryValues.push(entry.memory[0]);
             }
         }
-        return memoryValues.reduce((sum, value) => sum + value);
+        return memoryValues.reduce((sum, value) => sum + value, 0);
     }
 
     getName() {
@@ -249,7 +261,11 @@ export class App {
     }
 
     getUptime() {
-        return Math.round((Number(new Date()) - this.startTime) / 1000);
+        if (Object.keys(this.pids).length === 0) {
+            return 0;
+        } else {
+            return Math.round((Number(new Date()) - this.startTime) / 1000);
+        }
     }
 
     private getAveragePidsMemory() {
@@ -258,7 +274,7 @@ export class App {
         for (const [, entry] of Object.entries(this.pids)) {
             // Collect average memory for every pid
             const value = Math.round(
-                entry.memory.reduce((sum, value) => sum + value) / entry.memory.length
+                entry.memory.reduce((sum, value) => sum + value, 0) / entry.memory.length
             );
             memoryValues.push(value);
         }
@@ -271,7 +287,7 @@ export class App {
 
         for (const [, entry] of Object.entries(this.pids)) {
             const value = Math.round(
-                entry.cpu.reduce((sum, value) => sum + value) / entry.cpu.length
+                entry.cpu.reduce((sum, value) => sum + value, 0) / entry.cpu.length
             );
             cpuValues.push(value);
         }

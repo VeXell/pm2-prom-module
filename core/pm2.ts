@@ -1,9 +1,9 @@
-import pm2 from 'pm2';
-import pidusage from 'pidusage';
+import pm2, { Pm2Env } from 'pm2';
 
 import { App, IPidDataInput, PM2_METRICS } from './app';
 import { toUndescore } from '../utils';
 import { PM2BusResponse } from '../types';
+import { getPidsUsage } from '../utils/cpu';
 
 import {
     initDynamicGaugeMetricClients,
@@ -18,6 +18,7 @@ import {
     metricAppUptime,
     metricAppPidsMemory,
     metricAppPidsCpuThreshold,
+    metricAppStatus,
     deletePromAppMetrics,
     deletePromAppInstancesMetrics,
 } from '../metrics';
@@ -27,6 +28,7 @@ import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
 import { getLogger } from '../utils/logger';
 
 type IPidsData = Record<number, IPidDataInput>;
+type IAppData = Record<string, { pids: number[]; restartsSum: number; status?: Pm2Env['status'] }>;
 
 const WORKER_CHECK_INTERVAL = 1000;
 const SHOW_STAT_INTERVAL = 10000;
@@ -39,9 +41,7 @@ const isMonitoringApp = (app: pm2.ProcessDescription) => {
     if (
         pm2_env.axm_options.isModule ||
         !app.name ||
-        !app.pid ||
-        app.pm_id === undefined || // pm_id might be zero
-        pm2_env.status !== 'online'
+        app.pm_id === undefined // pm_id might be zero
     ) {
         return false;
     }
@@ -68,13 +68,13 @@ const detectActiveApps = () => {
         if (err) return console.error(err.stack || err);
 
         const pidsMonit: IPidsData = {};
-        const mapAppPids: { [key: string]: { pids: number[]; restartsSum: number } } = {};
+        const mapAppPids: IAppData = {};
 
         apps.forEach((app) => {
             const pm2_env = app.pm2_env as pm2.Pm2Env;
             const appName = app.name;
 
-            if (!isMonitoringApp(app) || !appName || !app.pid || app.pm_id === undefined) {
+            if (!isMonitoringApp(app) || !appName || app.pm_id === undefined) {
                 return;
             }
 
@@ -86,20 +86,24 @@ const detectActiveApps = () => {
                 };
             }
 
-            mapAppPids[appName].pids.push(app.pid);
             mapAppPids[appName].restartsSum =
                 mapAppPids[appName].restartsSum + Number(pm2_env.restart_time || 0);
+            mapAppPids[appName].status = app.pm2_env?.status;
 
-            // Fill monitoring data
-            pidsMonit[app.pid] = {
-                cpu: 0,
-                memory: 0,
-                pmId: app.pm_id,
-                id: app.pid,
-                restartCount: pm2_env.restart_time || 0,
-                createdAt: pm2_env.created_at || 0,
-                metrics: pm2_env.axm_monitor,
-            };
+            if (app.pid) {
+                mapAppPids[appName].pids.push(app.pid);
+
+                // Fill monitoring data
+                pidsMonit[app.pid] = {
+                    cpu: 0,
+                    memory: 0,
+                    pmId: app.pm_id,
+                    id: app.pid,
+                    restartCount: pm2_env.restart_time || 0,
+                    createdAt: pm2_env.created_at || 0,
+                    metrics: pm2_env.axm_monitor,
+                };
+            }
         });
 
         Object.keys(APPS).forEach((appName) => {
@@ -147,6 +151,7 @@ const detectActiveApps = () => {
         });
 
         for (const [appName, entry] of Object.entries(mapAppPids)) {
+            // Create instances for new apps
             if (entry.pids.length && !APPS[appName]) {
                 APPS[appName] = new App(appName);
             }
@@ -155,12 +160,10 @@ const detectActiveApps = () => {
         // Get all pids to monit
         const pids = Object.keys(pidsMonit);
 
-        if (pids.length) {
-            // Get real pids data.
-            // !ATTENTION! Can not use PM2 app.monit because of incorrect values of CPU usage
-            pidusage(pids, (err, stats) => {
-                if (err) return console.error(err.stack || err);
-
+        // Get real pids data.
+        // !ATTENTION! Can not use PM2 app.monit because of incorrect values of CPU usage
+        getPidsUsage(pids)
+            .then((stats) => {
                 // Fill data for all pids
                 if (stats && Object.keys(stats).length) {
                     for (const [pid, stat] of Object.entries(stats)) {
@@ -177,6 +180,11 @@ const detectActiveApps = () => {
                     const workingApp = APPS[appName];
 
                     if (workingApp) {
+                        console.log('Update status');
+                        // Update status
+                        workingApp.updateStatus(entry.status);
+
+                        // Update pids data
                         entry.pids.forEach((pidId) => {
                             const monit = pidsMonit[pidId];
 
@@ -189,8 +197,10 @@ const detectActiveApps = () => {
                         processWorkingApp(workingApp);
                     }
                 }
+            })
+            .catch((err) => {
+                console.error(err.stack || err);
             });
-        }
     });
 };
 
@@ -280,6 +290,7 @@ function processWorkingApp(workingApp: App) {
     metricAppTotalMemory?.set(labels, workingApp.getTotalUsedMemory());
     metricAppAverageCpu?.set(labels, workingApp.getAverageCpu());
     metricAppUptime?.set(labels, workingApp.getUptime());
+    metricAppStatus?.set(labels, workingApp.getStatus());
 
     workingApp.getCurrentPidsCpu().forEach((entry) => {
         metricAppPidsCpuLast?.set({ ...labels, instance: entry.pmId }, entry.value);

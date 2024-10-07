@@ -1,4 +1,4 @@
-import { AxmMonitor } from 'pm2';
+import { AxmMonitor, Pm2Env } from 'pm2';
 import { toUndescore } from '../utils';
 
 export type IPidDataInput = {
@@ -24,6 +24,14 @@ type IPidData = {
 
 const MONIT_ITEMS_LIMIT = 30;
 
+enum APP_STATUS {
+    UNKNOWN = 0,
+    RUNNING = 1,
+    PENDING = 2,
+    STOPPED = 3,
+    ERRORED = 4,
+}
+
 export const PM2_METRICS = [
     { name: 'Used Heap Size', unit: 'bytes' },
     { name: 'Heap Usage', unit: '%' },
@@ -41,6 +49,7 @@ export class App {
     private readonly pids: { [key: number]: IPidData } = {};
     private readonly name: string;
     private startTime: number = 0;
+    private status: APP_STATUS = APP_STATUS.UNKNOWN;
 
     public isProcessing: boolean = false;
 
@@ -94,6 +103,31 @@ export class App {
         }
 
         return this;
+    }
+
+    updateStatus(status?: Pm2Env['status']) {
+        switch (status) {
+            case 'online':
+            case 'one-launch-status':
+                this.status = APP_STATUS.RUNNING;
+                break;
+            case 'errored':
+                this.status = APP_STATUS.ERRORED;
+                break;
+            case 'stopped':
+                this.status = APP_STATUS.STOPPED;
+                break;
+            case 'launching':
+            case 'stopping':
+                this.status = APP_STATUS.PENDING;
+                break;
+            default:
+                this.status = APP_STATUS.UNKNOWN;
+        }
+    }
+
+    getStatus() {
+        return this.status;
     }
 
     getActivePm2Ids() {

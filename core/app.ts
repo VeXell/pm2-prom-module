@@ -1,4 +1,4 @@
-import { AxmMonitor } from 'pm2';
+import { AxmMonitor, Pm2Env } from 'pm2';
 import { toUndescore } from '../utils';
 
 export type IPidDataInput = {
@@ -24,6 +24,14 @@ type IPidData = {
 
 const MONIT_ITEMS_LIMIT = 30;
 
+enum APP_STATUS {
+    UNKNOWN = 0,
+    RUNNING = 1,
+    PENDING = 2,
+    STOPPED = 3,
+    ERRORED = 4,
+}
+
 export const PM2_METRICS = [
     { name: 'Used Heap Size', unit: 'bytes' },
     { name: 'Heap Usage', unit: '%' },
@@ -41,6 +49,7 @@ export class App {
     private readonly pids: { [key: number]: IPidData } = {};
     private readonly name: string;
     private startTime: number = 0;
+    private status: APP_STATUS = APP_STATUS.UNKNOWN;
 
     public isProcessing: boolean = false;
 
@@ -96,6 +105,31 @@ export class App {
         return this;
     }
 
+    updateStatus(status?: Pm2Env['status']) {
+        switch (status) {
+            case 'online':
+            case 'one-launch-status':
+                this.status = APP_STATUS.RUNNING;
+                break;
+            case 'errored':
+                this.status = APP_STATUS.ERRORED;
+                break;
+            case 'stopped':
+                this.status = APP_STATUS.STOPPED;
+                break;
+            case 'launching':
+            case 'stopping':
+                this.status = APP_STATUS.PENDING;
+                break;
+            default:
+                this.status = APP_STATUS.UNKNOWN;
+        }
+    }
+
+    getStatus() {
+        return this.status;
+    }
+
     getActivePm2Ids() {
         const values: number[] = [];
 
@@ -112,12 +146,24 @@ export class App {
 
     getAverageUsedMemory() {
         const memoryValues = this.getAveragePidsMemory();
-        return Math.round(memoryValues.reduce((sum, value) => sum + value) / memoryValues.length);
+
+        if (memoryValues.length) {
+            return Math.round(
+                memoryValues.reduce((sum, value) => sum + value, 0) / memoryValues.length
+            );
+        }
+
+        return 0;
     }
 
     getAverageCpu() {
         const cpuValues = this.getAveragePidsCpu();
-        return Math.round(cpuValues.reduce((sum, value) => sum + value) / cpuValues.length);
+
+        if (cpuValues.length) {
+            return Math.round(cpuValues.reduce((sum, value) => sum + value, 0) / cpuValues.length);
+        }
+
+        return 0;
     }
 
     getRestartCount() {
@@ -181,7 +227,7 @@ export class App {
 
         for (const [pid, entry] of Object.entries(this.pids)) {
             const value = Math.round(
-                entry.cpu.reduce((sum, value) => sum + value) / entry.cpu.length
+                entry.cpu.reduce((sum, value) => sum + value, 0) / entry.cpu.length
             );
 
             values.push({
@@ -203,7 +249,7 @@ export class App {
                 memoryValues.push(entry.memory[0]);
             }
         }
-        return memoryValues.reduce((sum, value) => sum + value);
+        return memoryValues.reduce((sum, value) => sum + value, 0);
     }
 
     getName() {
@@ -215,7 +261,11 @@ export class App {
     }
 
     getUptime() {
-        return Math.round((Number(new Date()) - this.startTime) / 1000);
+        if (Object.keys(this.pids).length === 0) {
+            return 0;
+        } else {
+            return Math.round((Number(new Date()) - this.startTime) / 1000);
+        }
     }
 
     private getAveragePidsMemory() {
@@ -224,7 +274,7 @@ export class App {
         for (const [, entry] of Object.entries(this.pids)) {
             // Collect average memory for every pid
             const value = Math.round(
-                entry.memory.reduce((sum, value) => sum + value) / entry.memory.length
+                entry.memory.reduce((sum, value) => sum + value, 0) / entry.memory.length
             );
             memoryValues.push(value);
         }
@@ -237,7 +287,7 @@ export class App {
 
         for (const [, entry] of Object.entries(this.pids)) {
             const value = Math.round(
-                entry.cpu.reduce((sum, value) => sum + value) / entry.cpu.length
+                entry.cpu.reduce((sum, value) => sum + value, 0) / entry.cpu.length
             );
             cpuValues.push(value);
         }

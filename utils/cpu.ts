@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
 import os from 'node:os';
+import pidusage from 'pidusage';
 
 // We also get it from nproc and use the minimum of the two.
 const getConcurrencyFromNProc = () => {
@@ -23,4 +24,20 @@ export const getCpuCount = () => {
     }
 
     return Math.min(nproc, node);
+};
+
+export const getPidsUsage = (pids: string[]) => {
+    return new Promise((resolve, reject) => {
+        if (pids.length) {
+            pidusage(pids, (err, stats) => {
+                if (err) {
+                    reject(err);
+                }
+
+                resolve(stats);
+            });
+        } else {
+            resolve({});
+        }
+    });
 };

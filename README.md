@@ -26,6 +26,7 @@ This module `pm2-prom-module` allows you to collect all PM2 monitoring data such
 -   Current CPU usage for every app instance
 -   Restarts count for every app instance
 -   Uptime for every app
+-   App status (0-unknown, 1-running, 2-pending, 3-stopped, 4-errored)
 
 Also collect all PM2 default metrics for every instance:
 
@@ -178,6 +179,12 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 ```
 
 ## Change log
+
+### Version 2.4.0
+
+-   Add new metric `pm2_app_status` describes status of an app. (0-unknown,1-running,2-pending,3-stopped,4-errored)
+    All other metrics related to the app (not for pids) will be displayed. For example, `pm2_available_apps` will show app until
+    it will be deleted from the PM2 or `pm2_app_instances` will show 0 for `stopped` or `errored` status apps.
 
 ### Version 2.3.2
 

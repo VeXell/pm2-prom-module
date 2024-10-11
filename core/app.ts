@@ -24,7 +24,7 @@ type IPidData = {
 
 const MONIT_ITEMS_LIMIT = 30;
 
-enum APP_STATUS {
+export enum APP_STATUS {
     UNKNOWN = 0,
     RUNNING = 1,
     PENDING = 2,

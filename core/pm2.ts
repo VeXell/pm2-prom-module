@@ -1,6 +1,6 @@
 import pm2, { Pm2Env } from 'pm2';
 
-import { App, IPidDataInput, PM2_METRICS } from './app';
+import { App, APP_STATUS, IPidDataInput, PM2_METRICS } from './app';
 import { toUndescore } from '../utils';
 import { PM2BusResponse } from '../types';
 import { getPidsUsage } from '../utils/cpu';
@@ -330,21 +330,23 @@ function processWorkingApp(workingApp: App) {
     });
 
     // Request available metrics from the running app
-    workingApp.getActivePm2Ids().forEach((pm2id) => {
-        pm2.sendDataToProcessId(
-            pm2id,
-            {
-                topic: 'pm2-prom-module:collect',
-                data: {},
-                // Required fields by pm2 but we do not use them
-                id: pm2id,
-            },
-            (err) => {
-                if (err)
-                    return console.error(
-                        `pm2-prom-module: sendDataToProcessId ${err.stack || err}`
-                    );
-            }
-        );
-    });
+    if (workingApp.getStatus() === APP_STATUS.RUNNING) {
+        workingApp.getActivePm2Ids().forEach((pm2id) => {
+            pm2.sendDataToProcessId(
+                pm2id,
+                {
+                    topic: 'pm2-prom-module:collect',
+                    data: {},
+                    // Required fields by pm2 but we do not use them
+                    id: pm2id,
+                },
+                (err) => {
+                    if (err)
+                        return console.error(
+                            `pm2-prom-module: sendDataToProcessId ${err.stack || err}`
+                        );
+                }
+            );
+        });
+    }
 }

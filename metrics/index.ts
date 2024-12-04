@@ -18,6 +18,9 @@ const METRIC_APP_PIDS_CPU_THRESHOLD = 'app_pids_cpu_threshold';
 const METRIC_APP_RESTART_COUNT = 'app_restart_count';
 const METRIC_APP_UPTIME = 'app_uptime';
 const METRIC_APP_STATUS = 'app_status';
+const METRIC_TOTAL_MEMORY_CONTAINER = 'container_total_memory';
+const METRIC_FREE_MEMORY_CONTAINER = 'container_free_memory';
+const METRIC_AVAILABLE_CPU_CONTAINER = 'container_cpu_count';
 
 export const registry = new client.Registry();
 
@@ -43,7 +46,7 @@ export const initMetrics = (prefix: string) => {
 
     new client.Gauge({
         name: `${prefix}_${METRIC_FREE_MEMORY}`,
-        help: 'Show available host free memory',
+        help: 'Show available host free memory (System)',
         collect() {
             this.set(os.freemem());
         },
@@ -52,12 +55,41 @@ export const initMetrics = (prefix: string) => {
 
     new client.Gauge({
         name: `${prefix}_${METRIC_AVAILABLE_CPU}`,
-        help: 'Show available CPUs count',
+        help: 'Show available CPUs count (System)',
         collect() {
             this.set(getCpuCount());
         },
         registers: [registry],
     });
+
+    new client.Gauge({
+        name: `${prefix}_${METRIC_TOTAL_MEMORY_CONTAINER}`,
+        help: 'Total memory in container',
+        collect() {
+            this.set(0);
+        },
+        registers: [registry],
+    });
+
+    new client.Gauge({
+        name: `${prefix}_${METRIC_FREE_MEMORY_CONTAINER}`,
+        help: 'Free available memory in container',
+        collect() {
+            this.set(0);
+        },
+        registers: [registry],
+    });
+
+    new client.Gauge({
+        name: `${prefix}_${METRIC_AVAILABLE_CPU_CONTAINER}`,
+        help: 'Available CPUs incontianer',
+        collect() {
+            this.set(0);
+        },
+        registers: [registry],
+    });
+
+    //
 
     metricAvailableApps = new client.Gauge({
         name: `${prefix}_${METRIC_AVAILABLE_APPS}`,

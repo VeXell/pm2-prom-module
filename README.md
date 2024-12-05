@@ -19,7 +19,7 @@ This module `pm2-prom-module` allows you to collect all PM2 monitoring data such
 -   Free memory
 -   CPUs count
 -   Count of running apps
--   Cound of instances for every app
+-   Count of instances for every app
 -   Average using memory for every app
 -   Total using memory for all instances of a app
 -   Average using CPU for every app

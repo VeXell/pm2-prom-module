@@ -2,6 +2,12 @@ import client from 'prom-client';
 import os from 'node:os';
 
 import { getCpuCount } from '../utils/cpu';
+import {
+    getAvailableMemory,
+    getCPULimit,
+    getFreeMemory,
+    hasDockerLimitFiles,
+} from '../utils/docker';
 
 import { getAppRegistry } from './app';
 
@@ -18,6 +24,9 @@ const METRIC_APP_PIDS_CPU_THRESHOLD = 'app_pids_cpu_threshold';
 const METRIC_APP_RESTART_COUNT = 'app_restart_count';
 const METRIC_APP_UPTIME = 'app_uptime';
 const METRIC_APP_STATUS = 'app_status';
+const METRIC_TOTAL_MEMORY_CONTAINER = 'container_total_memory';
+const METRIC_FREE_MEMORY_CONTAINER = 'container_free_memory';
+const METRIC_AVAILABLE_CPU_CONTAINER = 'container_cpu_count';
 
 export const registry = new client.Registry();
 
@@ -43,7 +52,7 @@ export const initMetrics = (prefix: string) => {
 
     new client.Gauge({
         name: `${prefix}_${METRIC_FREE_MEMORY}`,
-        help: 'Show available host free memory',
+        help: 'Show available host free memory (System OS)',
         collect() {
             this.set(os.freemem());
         },
@@ -52,12 +61,55 @@ export const initMetrics = (prefix: string) => {
 
     new client.Gauge({
         name: `${prefix}_${METRIC_AVAILABLE_CPU}`,
-        help: 'Show available CPUs count',
+        help: 'Show available CPUs count (System OS)',
         collect() {
             this.set(getCpuCount());
         },
         registers: [registry],
     });
+
+    // Check if we in docker container
+    hasDockerLimitFiles()
+        .then(() => {
+            new client.Gauge({
+                name: `${prefix}_${METRIC_TOTAL_MEMORY_CONTAINER}`,
+                help: 'Available memory in container',
+                async collect() {
+                    try {
+                        const memory = await getAvailableMemory();
+                        this.set(memory);
+                    } catch {}
+                },
+                registers: [registry],
+            });
+
+            new client.Gauge({
+                name: `${prefix}_${METRIC_FREE_MEMORY_CONTAINER}`,
+                help: 'Free memory in container',
+                async collect() {
+                    try {
+                        const memory = await getFreeMemory();
+                        this.set(memory);
+                    } catch {}
+                },
+                registers: [registry],
+            });
+
+            new client.Gauge({
+                name: `${prefix}_${METRIC_AVAILABLE_CPU_CONTAINER}`,
+                help: 'Available CPUs limit in container',
+                async collect() {
+                    try {
+                        const limit = await getCPULimit();
+                        this.set(limit);
+                    } catch {}
+                },
+                registers: [registry],
+            });
+        })
+        .catch(() => {
+            //
+        });
 
     metricAvailableApps = new client.Gauge({
         name: `${prefix}_${METRIC_AVAILABLE_APPS}`,

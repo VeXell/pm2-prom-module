@@ -27,6 +27,7 @@ This module `pm2-prom-module` allows you to collect all PM2 monitoring data such
 -   Restarts count for every app instance
 -   Uptime for every app
 -   App status (0-unknown, 1-running, 2-pending, 3-stopped, 4-errored)
+-   Memory and CPU limits when run PM2 in docker container
 
 Also collect all PM2 default metrics for every instance:
 
@@ -179,6 +180,14 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 ```
 
 ## Change log
+
+### Version 2.5.0
+
+Additional metrics when PM2 running in docker container and you limit it with commands for example `docker run --memory="512m" --cpus="2"`
+
+-   Add new metric `pm2_container_total_memory` describes total available memory in docker container
+-   Add new metric `pm2_container_free_memory` describes free memory in docker container
+-   Add new metric `pm2_container_cpu_count` describes available CPUs limit in docker container
 
 ### Version 2.4.0
 

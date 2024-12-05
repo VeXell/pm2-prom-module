@@ -183,7 +183,7 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ### Version 2.5.0
 
-Additional metrics when PM2 running in docker contaner and you limit it with commands for example `docker run --memory="512m" --cpus="2"`
+Additional metrics when PM2 running in docker container and you limit it with commands for example `docker run --memory="512m" --cpus="2"`
 
 -   Add new metric `pm2_container_total_memory` describes total available memory in docker container
 -   Add new metric `pm2_container_free_memory` describes free memory in docker container

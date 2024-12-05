@@ -6,6 +6,7 @@ import {
     getAvailableMemory,
     getCPULimit,
     getFreeMemory,
+    getUsedMemory,
     hasDockerLimitFiles,
 } from '../utils/docker';
 
@@ -26,6 +27,7 @@ const METRIC_APP_UPTIME = 'app_uptime';
 const METRIC_APP_STATUS = 'app_status';
 const METRIC_TOTAL_MEMORY_CONTAINER = 'container_total_memory';
 const METRIC_FREE_MEMORY_CONTAINER = 'container_free_memory';
+const METRIC_USED_MEMORY_CONTAINER = 'container_free_memory';
 const METRIC_AVAILABLE_CPU_CONTAINER = 'container_cpu_count';
 
 export const registry = new client.Registry();
@@ -89,6 +91,18 @@ export const initMetrics = (prefix: string) => {
                 async collect() {
                     try {
                         const memory = await getFreeMemory();
+                        this.set(memory);
+                    } catch {}
+                },
+                registers: [registry],
+            });
+
+            new client.Gauge({
+                name: `${prefix}_${METRIC_USED_MEMORY_CONTAINER}`,
+                help: 'Used memory in container',
+                async collect() {
+                    try {
+                        const memory = await getUsedMemory();
                         this.set(memory);
                     } catch {}
                 },

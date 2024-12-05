@@ -14,7 +14,7 @@ export const hasDockerLimitFiles = async () => {
 
 export const getAvailableMemory = async () => {
     try {
-        const data = await readFile(MEMORY_AVAILABLE, { encoding: 'utf8' });
+        const data = (await readFile(MEMORY_AVAILABLE, { encoding: 'utf8' })).trim();
 
         if (data === 'max') {
             return os.totalmem();
@@ -32,19 +32,28 @@ export const getAvailableMemory = async () => {
     }
 };
 
+export const getUsedMemory = async () => {
+    try {
+        const data = (await readFile(MEMORY_USED, { encoding: 'utf8' })).trim();
+        const usedMemory = parseInt(data, 10);
+
+        if (isNaN(usedMemory)) {
+            return 0;
+        } else {
+            return usedMemory;
+        }
+    } catch {
+        return 0;
+    }
+};
+
 export const getFreeMemory = async () => {
     try {
-        const totalMemory = await getAvailableMemory();
+        const availableMemory = await getAvailableMemory();
+        const usedMemory = await getUsedMemory();
 
-        if (totalMemory > 0) {
-            const data = await readFile(MEMORY_USED, { encoding: 'utf8' });
-            const usedMemory = parseInt(data, 10);
-
-            if (isNaN(usedMemory)) {
-                return 0;
-            } else {
-                return totalMemory - usedMemory;
-            }
+        if (availableMemory > 0 && usedMemory > 0) {
+            return availableMemory - usedMemory;
         } else {
             return 0;
         }
@@ -58,7 +67,7 @@ export const getCPULimit = async () => {
     const delimeter = 100000;
 
     try {
-        const data = await readFile(CPUS_LIMIT, { encoding: 'utf8' });
+        const data = (await readFile(CPUS_LIMIT, { encoding: 'utf8' })).trim();
 
         if (data) {
             const values = data.split(' ');

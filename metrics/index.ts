@@ -2,7 +2,12 @@ import client from 'prom-client';
 import os from 'node:os';
 
 import { getCpuCount } from '../utils/cpu';
-import { hasDockerLimitFiles } from '../utils/docker';
+import {
+    getAvailableMemory,
+    getCPULimit,
+    getFreeMemory,
+    hasDockerLimitFiles,
+} from '../utils/docker';
 
 import { getAppRegistry } from './app';
 
@@ -69,8 +74,11 @@ export const initMetrics = (prefix: string) => {
             new client.Gauge({
                 name: `${prefix}_${METRIC_TOTAL_MEMORY_CONTAINER}`,
                 help: 'Available memory in container',
-                collect() {
-                    this.set(0);
+                async collect() {
+                    try {
+                        const memory = await getAvailableMemory();
+                        this.set(memory);
+                    } catch {}
                 },
                 registers: [registry],
             });
@@ -78,17 +86,23 @@ export const initMetrics = (prefix: string) => {
             new client.Gauge({
                 name: `${prefix}_${METRIC_FREE_MEMORY_CONTAINER}`,
                 help: 'Free memory in container',
-                collect() {
-                    this.set(0);
+                async collect() {
+                    try {
+                        const memory = await getFreeMemory();
+                        this.set(memory);
+                    } catch {}
                 },
                 registers: [registry],
             });
 
             new client.Gauge({
                 name: `${prefix}_${METRIC_AVAILABLE_CPU_CONTAINER}`,
-                help: 'Available CPUs in contianer',
-                collect() {
-                    this.set(0);
+                help: 'Available CPUs limit in container',
+                async collect() {
+                    try {
+                        const limit = await getCPULimit();
+                        this.set(limit);
+                    } catch {}
                 },
                 registers: [registry],
             });

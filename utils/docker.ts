@@ -1,19 +1,18 @@
 import { access, constants, readFile } from 'node:fs/promises';
 import os from 'node:os';
+import { getCpuCount } from './cpu';
+//const MEMORY_AVAILABLE = '/sys/fs/cgroup/memory.limit_in_bytes';
+//const MEMORY_USED = '/sys/fs/cgroup/memory.usage_in_bytes';
 
-const MEMORY_AVAILABLE = '/sys/fs/cgroup/memory/memory.limit_in_bytes';
-const MEMORY_USED = '/sys/fs/cgroup/memory/memory.usage_in_bytes';
+const MEMORY_AVAILABLE = '/sys/fs/cgroup/memory.max';
+const MEMORY_USED = '/sys/fs/cgroup/memory.current';
+const CPUS_LIMIT = '/sys/fs/cgroup/cpu.max';
 
 export const hasDockerLimitFiles = async () => {
-    try {
-        await access(MEMORY_AVAILABLE, constants.R_OK);
-        return true;
-    } catch {
-        return false;
-    }
+    await access(MEMORY_AVAILABLE, constants.R_OK);
 };
 
-export const getTotalMemory = async () => {
+export const getAvailableMemory = async () => {
     try {
         const data = await readFile(MEMORY_AVAILABLE, { encoding: 'utf8' });
 
@@ -35,7 +34,7 @@ export const getTotalMemory = async () => {
 
 export const getFreeMemory = async () => {
     try {
-        const totalMemory = await getTotalMemory();
+        const totalMemory = await getAvailableMemory();
 
         if (totalMemory > 0) {
             const data = await readFile(MEMORY_USED, { encoding: 'utf8' });
@@ -52,4 +51,27 @@ export const getFreeMemory = async () => {
     } catch {
         return 0;
     }
+};
+
+export const getCPULimit = async () => {
+    let count = getCpuCount();
+    const delimeter = 100000;
+
+    try {
+        const data = await readFile(CPUS_LIMIT, { encoding: 'utf8' });
+
+        if (data) {
+            const values = data.split(' ');
+
+            if (values.length === 2) {
+                const parsedValue = parseInt(values[0], 10);
+
+                if (!isNaN(parsedValue)) {
+                    count = parsedValue / delimeter;
+                }
+            }
+        }
+    } catch {}
+
+    return count;
 };

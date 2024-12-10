@@ -1,6 +1,7 @@
 import { access, constants, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import { getCpuCount } from './cpu';
+
 //const MEMORY_AVAILABLE = '/sys/fs/cgroup/memory.limit_in_bytes';
 //const MEMORY_USED = '/sys/fs/cgroup/memory.usage_in_bytes';
 
@@ -49,13 +50,30 @@ export const getUsedMemory = async () => {
 
 export const getFreeMemory = async () => {
     try {
-        const availableMemory = await getAvailableMemory();
+        const data = (await readFile(MEMORY_AVAILABLE, { encoding: 'utf8' })).trim();
+        const systemFreeMem = os.freemem();
+
+        if (data === 'max') {
+            // In that case we do not have any limits. Use only freemem
+            return systemFreeMem;
+        }
+
+        // In that case we should calculate free memory
+        const availableMemory = parseInt(data, 10);
+
+        if (isNaN(availableMemory)) {
+            // If we can not parse return OS Free memory
+            return systemFreeMem;
+        }
+
         const usedMemory = await getUsedMemory();
 
-        if (availableMemory > 0 && usedMemory > 0) {
+        if (availableMemory <= systemFreeMem) {
+            // We have docker limit in the container
             return availableMemory - usedMemory;
         } else {
-            return 0;
+            // Limited by system available memory
+            return systemFreeMem;
         }
     } catch {
         return 0;

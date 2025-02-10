@@ -161,9 +161,16 @@ const detectActiveApps = () => {
         });
 
         // Create instances for new apps
-        for (const [appName] of Object.entries(mapAppPids)) {
+        for (const [appName, entry] of Object.entries(mapAppPids)) {
             if (!APPS[appName]) {
                 APPS[appName] = new App(appName);
+            }
+
+            const workingApp = APPS[appName];
+
+            if (workingApp) {
+                // Update status
+                workingApp.updateStatus(entry.status);
             }
         }
 
@@ -193,9 +200,6 @@ const detectActiveApps = () => {
                     const workingApp = APPS[appName];
 
                     if (workingApp) {
-                        // Update status
-                        workingApp.updateStatus(entry.status);
-
                         // Update pids data
                         entry.pids.forEach((pidId) => {
                             const monit = pidsMonit[pidId];

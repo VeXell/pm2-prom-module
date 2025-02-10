@@ -88,7 +88,7 @@ pmx.initModule(
 
         initLogger({ isDebug: moduleConfig.debug });
         startPm2Connect(moduleConfig);
-        startPromServer(moduleConfig.prefix ?? DEFAULT_PREFIX, moduleConfig);
+        startPromServer(DEFAULT_PREFIX, moduleConfig);
 
         pmx.configureModule({
             human_info: [
@@ -101,7 +101,6 @@ pmx.initModule(
                 ['Port', moduleConfig.port],
                 ['Service name', moduleConfig.service_name ? moduleConfig.service_name : `N/A`],
                 ['Check interval', `${moduleConfig.app_check_interval} ms`],
-                ['Prefix', moduleConfig.prefix ?? DEFAULT_PREFIX],
             ],
         });
     }

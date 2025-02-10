@@ -32,8 +32,7 @@
         "service_name": "",
         "debug": false,
         "aggregate_app_metrics": true,
-        "app_check_interval": 1000,
-        "prefix": "pm2"
+        "app_check_interval": 1000
     },
     "devDependencies": {
         "@types/node": "^18.19.50",

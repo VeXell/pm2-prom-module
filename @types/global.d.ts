@@ -6,7 +6,6 @@ type IConfig = {
     service_name: string;
     aggregate_app_metrics: boolean;
     app_check_interval: number;
-    prefix: string;
 };
 
 type IPMXConfig = {

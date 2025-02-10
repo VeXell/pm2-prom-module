@@ -67,6 +67,7 @@ Default settings:
 -   `debug` Enable debug mode to show logs from the module (default to `false`)
 -   `aggregate_app_metrics` Enable to aggregate metrics from app instances (default to `true`)
 -   `app_check_interval` Interval to check available apps and collect statistic (default to `1000`)
+-   `prefix` Prefix for metrics (default to `pm2`)
 
 To modify the module config values you can use the following commands:
 
@@ -180,6 +181,15 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 ```
 
 ## Change log
+
+### Version 2.5.3
+
+-   Change logic to detect app status to prevent failed request with `sendDataToProcessId`
+-   Add new metric `prefix` Prefix for metrics (default to `pm2`)
+
+```bash
+pm2 set pm2-prom-module:prefix my_metrics
+```
 
 ### Version 2.5.2
 

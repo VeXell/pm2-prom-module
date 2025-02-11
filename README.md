@@ -182,7 +182,7 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ## Change log
 
-### Version 2.5.3
+### Version 2.5.4
 
 -   Change logic to detect app status to prevent failed request with `sendDataToProcessId`
 -   Add new metric `prefix` Prefix for metrics (default to `pm2`)

@@ -182,6 +182,10 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ## Change log
 
+### Version 2.6.0
+
+-   New logic to collect internal statistic from apps. Check status before send request to process via `sendDataToProcessId`
+
 ### Version 2.5.4
 
 -   Change logic to detect app status to prevent failed request with `sendDataToProcessId`

@@ -1,6 +1,6 @@
 import pm2, { Pm2Env } from 'pm2';
 
-import { App, APP_STATUS, IPidDataInput, PM2_METRICS } from './app';
+import { App, IPidDataInput, PM2_METRICS } from './app';
 import { toUndescore } from '../utils';
 import { PM2BusResponse } from '../types';
 import { getPidsUsage } from '../utils/cpu';

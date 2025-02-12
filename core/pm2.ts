@@ -28,7 +28,10 @@ import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
 import { getLogger } from '../utils/logger';
 
 type IPidsData = Record<number, IPidDataInput>;
-type IAppData = Record<string, { pids: number[]; restartsSum: number; status?: Pm2Env['status'] }>;
+type IAppData = Record<
+    string,
+    { pids: number[]; pm2Ids: number[]; restartsSum: number; status?: Pm2Env['status'] }
+>;
 
 const WORKER_CHECK_INTERVAL = 1000;
 const SHOW_STAT_INTERVAL = 10000;
@@ -82,6 +85,7 @@ const detectActiveApps = () => {
             if (!mapAppPids[appName]) {
                 mapAppPids[appName] = {
                     pids: [],
+                    pm2Ids: [],
                     restartsSum: 0,
                 };
             }
@@ -90,8 +94,9 @@ const detectActiveApps = () => {
                 mapAppPids[appName].restartsSum + Number(pm2_env.restart_time || 0);
             mapAppPids[appName].status = app.pm2_env?.status;
 
-            if (app.pid) {
+            if (app.pid && app.pm_id) {
                 mapAppPids[appName].pids.push(app.pid);
+                mapAppPids[appName].pm2Ids.push(app.pm_id);
 
                 // Fill monitoring data
                 pidsMonit[app.pid] = {
@@ -160,6 +165,8 @@ const detectActiveApps = () => {
             }
         });
 
+        const activePM2Ids = new Set<number>();
+
         // Create instances for new apps
         for (const [appName, entry] of Object.entries(mapAppPids)) {
             if (!APPS[appName]) {
@@ -171,7 +178,16 @@ const detectActiveApps = () => {
             if (workingApp) {
                 // Update status
                 workingApp.updateStatus(entry.status);
+
+                if (entry.status === 'online') {
+                    entry.pm2Ids.forEach((pm2Id) => activePM2Ids.add(pm2Id));
+                }
             }
+        }
+
+        if (activePM2Ids.size > 0) {
+            // Collect statistic from apps
+            sendCollectStaticticBusEvent(Array.from(activePM2Ids));
         }
 
         // Update metric with available apps
@@ -332,25 +348,25 @@ function processWorkingApp(workingApp: App) {
             }
         });
     });
+}
 
-    // Request available metrics from the running app
-    if (workingApp.getStatus() === APP_STATUS.RUNNING) {
-        workingApp.getActivePm2Ids().forEach((pm2id) => {
-            pm2.sendDataToProcessId(
-                pm2id,
-                {
-                    topic: 'pm2-prom-module:collect',
-                    data: {},
-                    // Required fields by pm2 but we do not use them
-                    id: pm2id,
-                },
-                (err) => {
-                    if (err)
-                        return console.error(
-                            `pm2-prom-module: sendDataToProcessId ${err.stack || err}`
-                        );
-                }
-            );
-        });
-    }
+function sendCollectStaticticBusEvent(pm2Ids: number[]) {
+    // Request available metrics from all running apps
+    pm2Ids.forEach((pm2id) => {
+        pm2.sendDataToProcessId(
+            pm2id,
+            {
+                topic: 'pm2-prom-module:collect',
+                data: {},
+                // Required fields by pm2 but we do not use them
+                id: pm2id,
+            },
+            (err) => {
+                if (err)
+                    return console.error(
+                        `pm2-prom-module: sendDataToProcessId ${err.stack || err}`
+                    );
+            }
+        );
+    });
 }

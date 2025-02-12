@@ -28,10 +28,7 @@ import { processAppMetrics, deleteAppMetrics } from '../metrics/app';
 import { getLogger } from '../utils/logger';
 
 type IPidsData = Record<number, IPidDataInput>;
-type IAppData = Record<
-    string,
-    { pids: number[]; pm2Ids: number[]; restartsSum: number; status?: Pm2Env['status'] }
->;
+type IAppData = Record<string, { pids: number[]; restartsSum: number; status?: Pm2Env['status'] }>;
 
 const WORKER_CHECK_INTERVAL = 1000;
 const SHOW_STAT_INTERVAL = 10000;
@@ -61,6 +58,7 @@ const updateAppPidsData = (workingApp: App, pidData: IPidDataInput) => {
         restartCount: pidData.restartCount,
         createdAt: pidData.createdAt,
         metrics: pidData.metrics,
+        status: pidData.status,
     });
 };
 
@@ -72,12 +70,13 @@ const detectActiveApps = () => {
 
         const pidsMonit: IPidsData = {};
         const mapAppPids: IAppData = {};
+        const activePM2Ids = new Set<number>();
 
-        apps.forEach((app) => {
-            const pm2_env = app.pm2_env as pm2.Pm2Env;
-            const appName = app.name;
+        apps.forEach((appInstance) => {
+            const pm2_env = appInstance.pm2_env as pm2.Pm2Env;
+            const appName = appInstance.name;
 
-            if (!isMonitoringApp(app) || !appName || app.pm_id === undefined) {
+            if (!isMonitoringApp(appInstance) || !appName || appInstance.pm_id === undefined) {
                 return;
             }
 
@@ -85,28 +84,34 @@ const detectActiveApps = () => {
             if (!mapAppPids[appName]) {
                 mapAppPids[appName] = {
                     pids: [],
-                    pm2Ids: [],
                     restartsSum: 0,
                 };
             }
 
             mapAppPids[appName].restartsSum =
                 mapAppPids[appName].restartsSum + Number(pm2_env.restart_time || 0);
-            mapAppPids[appName].status = app.pm2_env?.status;
 
-            if (app.pid && app.pm_id) {
-                mapAppPids[appName].pids.push(app.pid);
-                mapAppPids[appName].pm2Ids.push(app.pm_id);
+            // Get the last app instance status
+            mapAppPids[appName].status = appInstance.pm2_env?.status;
+
+            if (appInstance.pid && appInstance.pm_id) {
+                mapAppPids[appName].pids.push(appInstance.pid);
+
+                // Fill active pm2 apps id to collect internal statistic
+                if (pm2_env.status === 'online') {
+                    activePM2Ids.add(appInstance.pm_id);
+                }
 
                 // Fill monitoring data
-                pidsMonit[app.pid] = {
+                pidsMonit[appInstance.pid] = {
                     cpu: 0,
                     memory: 0,
-                    pmId: app.pm_id,
-                    id: app.pid,
+                    pmId: appInstance.pm_id,
+                    id: appInstance.pid,
                     restartCount: pm2_env.restart_time || 0,
                     createdAt: pm2_env.created_at || 0,
                     metrics: pm2_env.axm_monitor,
+                    status: pm2_env.status,
                 };
             }
         });
@@ -165,8 +170,6 @@ const detectActiveApps = () => {
             }
         });
 
-        const activePM2Ids = new Set<number>();
-
         // Create instances for new apps
         for (const [appName, entry] of Object.entries(mapAppPids)) {
             if (!APPS[appName]) {
@@ -178,15 +181,12 @@ const detectActiveApps = () => {
             if (workingApp) {
                 // Update status
                 workingApp.updateStatus(entry.status);
-
-                if (entry.status === 'online') {
-                    entry.pm2Ids.forEach((pm2Id) => activePM2Ids.add(pm2Id));
-                }
             }
         }
 
+        // Collect statistic from apps. Do it after all APPS created
         if (activePM2Ids.size > 0) {
-            // Collect statistic from apps
+            // logger.debug(`Collect app metrics from PIDs ${Array.from(activePM2Ids)}`);
             sendCollectStaticticBusEvent(Array.from(activePM2Ids));
         }
 

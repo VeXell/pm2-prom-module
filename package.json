@@ -5,7 +5,6 @@
     "main": "index.js",
     "dependencies": {
         "pidusage": "^3.0.2",
-        "pm2": "^5.3.0",
         "pmx": "beta",
         "prom-client": "^15.1.3"
     },

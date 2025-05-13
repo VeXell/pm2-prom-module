@@ -57,5 +57,8 @@
         "Module",
         "Node.js",
         "Javascript"
-    ]
+    ],
+    "peerDependencies": {
+        "pm2": ">=5.0.0 <7.0.0"
+    }
 }

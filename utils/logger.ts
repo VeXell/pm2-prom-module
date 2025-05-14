@@ -50,3 +50,5 @@ export const getLogger = () => {
 
     return loggerInstance;
 };
+
+export const logger = getLogger();

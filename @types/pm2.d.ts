@@ -22,5 +22,6 @@ declare module 'pm2' {
         axm_monitor?: {
             [key: string]: AxmMonitor;
         };
+        BLOCKLET_DOCKER_NAME: string | undefined;
     };
 }

@@ -1,0 +1,31 @@
+name: version-check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - master
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: 8BitJonny/gh-get-current-pr@1.4.0
+        id: PR
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          filterOutClosed: true
+
+      - name: Check WIP in PR Title
+        uses: embano1/wip@v1
+        with:
+          title: '${{ steps.PR.outputs.pr_title }}'
+          regex: '^WIP'
+
+      - name: action-version-check
+        uses: arcblock/action-version-check@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

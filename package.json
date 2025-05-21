@@ -1,6 +1,6 @@
 {
     "name": "@arcblock/pm2-prom-module",
-    "version": "2.6.1",
+    "version": "2.6.2",
     "publishConfig": {
         "access": "public"
     },
@@ -15,7 +15,7 @@
         "zx": "^4.3.0"
     },
     "scripts": {
-        "predev": "pm2 delete pm2-prom-module || true && npm run build",
+        "predev": "pm2 delete @arcblock/pm2-prom-module && pm2 uninstall @arcblock/pm2-prom-module || true && npm run build",
         "dev": "pm2 install .",
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -w -p tsconfig.json",

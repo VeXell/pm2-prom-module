@@ -221,6 +221,9 @@ const detectActiveApps = () => {
                     dockerApps.map((x) => x.pm2_env?.BLOCKLET_DOCKER_NAME)
                 ).then((stats) => {
                     stats.map((stat, i) => {
+                        if (!stat) {
+                            return;
+                        }
                         const entry = mapAppPids[dockerApps[i].name!];
                         if (entry) {
                             entry.pids.forEach((pid) => {

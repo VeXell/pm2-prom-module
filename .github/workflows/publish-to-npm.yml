@@ -10,11 +10,7 @@ on:
             - main
 
 jobs:
-    can-run-ci:
-        uses: ./.github/workflows/can-run-ci.yml
-
-    integration:
-        needs: can-run-ci
+    publish-to-npm:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repo

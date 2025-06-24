@@ -3,6 +3,8 @@ import os from 'node:os';
 import { getCpuCount } from './cpu';
 import { $ } from 'zx';
 import xbytes from 'xbytes';
+import getIP from '@abtnode/util/lib/get-ip';
+import { v4 as internalIpV4 } from 'internal-ip';
 
 // 禁用命令和结果的自动输出
 $.verbose = false;
@@ -35,6 +37,41 @@ export const getAvailableMemory = async () => {
         }
     } catch {
         return 0;
+    }
+};
+
+export const getBlockletServerInfo = async () => {
+    try {
+        const internalIP =
+            (await internalIpV4()) ||
+            (await getIP({ includeExternal: false, timeout: 5000 })).internal;
+        if (!internalIP) {
+            throw new Error('Failed to get internal IP address');
+        }
+        const response = await fetch(
+            `https://${internalIP.replace(/\./g, '-')}.ip.abtnet.io/.well-known/did.json`
+        );
+        if (response.status !== 200) {
+            throw new Error(
+                `Failed to get blocklet server info, ip: ${internalIP}, status: ${response.status}, statusText: ${response.statusText}`
+            );
+        }
+        const data = await response.json();
+        const metadata = data.services.find((service: any) => service.type === 'server').metadata;
+        return {
+            name: metadata.name,
+            version: metadata.version,
+            mode: metadata.mode,
+            internalIP,
+        };
+    } catch (error) {
+        console.error(error);
+        return {
+            name: 'unknown',
+            version: 'unknown',
+            mode: 'unknown',
+            internalIP: 'unknown',
+        };
     }
 };
 

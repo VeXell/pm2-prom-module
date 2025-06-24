@@ -4,6 +4,7 @@ import os from 'node:os';
 import { getCpuCount } from '../utils/cpu';
 import {
     getAvailableMemory,
+    getBlockletServerInfo,
     getCPULimit,
     getFreeMemory,
     getUsedMemory,
@@ -12,6 +13,7 @@ import {
 
 import { getAppRegistry } from './app';
 
+const METRIC_BLOCKLET_SERVER_INFO = 'blocklet_server_info';
 const METRIC_FREE_MEMORY = 'free_memory';
 const METRIC_AVAILABLE_CPU = 'cpu_count';
 const METRIC_AVAILABLE_APPS = 'available_apps';
@@ -51,6 +53,17 @@ export const dynamicGaugeMetricClients: { [key: string]: client.Gauge } = {};
 // Metrics
 export const initMetrics = (prefix: string) => {
     currentPrefix = prefix;
+
+    new client.Gauge({
+        name: `${prefix}_${METRIC_BLOCKLET_SERVER_INFO}`,
+        help: 'Show blocklet server info',
+        async collect() {
+            const info = await getBlockletServerInfo();
+            this.set(info, 1);
+        },
+        registers: [registry],
+        labelNames: ['name', 'version', 'mode', 'internalIP'],
+    });
 
     new client.Gauge({
         name: `${prefix}_${METRIC_FREE_MEMORY}`,

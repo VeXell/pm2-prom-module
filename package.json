@@ -1,12 +1,14 @@
 {
     "name": "@arcblock/pm2-prom-module",
-    "version": "2.6.2",
+    "version": "2.6.3",
     "publishConfig": {
         "access": "public"
     },
     "description": "PM2 module to help collect applications statistic and send it to Prometheus server",
     "main": "index.js",
     "dependencies": {
+        "@abtnode/util": "^1.16.44",
+        "internal-ip": "^6.2.0",
         "pidusage": "^3.0.2",
         "pm2": "^5.3.0",
         "pmx": "beta",
@@ -15,12 +17,12 @@
         "zx": "^4.3.0"
     },
     "scripts": {
-        "predev": "pm2 delete @arcblock/pm2-prom-module && pm2 uninstall @arcblock/pm2-prom-module || true && npm run build",
-        "dev": "pm2 install .",
+        "predev": "export PM2_HOME=~/.arcblock/abtnode && pm2 delete @arcblock/pm2-prom-module && pm2 uninstall @arcblock/pm2-prom-module || true && npm run build",
+        "dev": "export PM2_HOME=~/.arcblock/abtnode && pm2 install .",
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -w -p tsconfig.json",
         "release": "npm run build && npm publish",
-        "bump:version": "zx scripts/bump-version.mjs --quiet"
+        "bump-version": "zx scripts/bump-version.mjs --quiet"
     },
     "files": [
         "README.md",

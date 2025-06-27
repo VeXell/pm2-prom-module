@@ -63,7 +63,7 @@ export const initMetrics = (prefix: string) => {
             this.set(info, 1);
         },
         registers: [registry],
-        labelNames: ['type'],
+        labelNames: ['type', 'name', 'version', 'mode', 'internalIP'],
     });
 
     new client.Gauge({

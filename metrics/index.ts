@@ -59,10 +59,11 @@ export const initMetrics = (prefix: string) => {
         help: 'Show blocklet server info',
         async collect() {
             const info = await getBlockletServerInfo();
+            this.remove({ type: info.type });
             this.set(info, 1);
         },
         registers: [registry],
-        labelNames: ['name', 'version', 'mode', 'internalIP'],
+        labelNames: ['type'],
     });
 
     new client.Gauge({

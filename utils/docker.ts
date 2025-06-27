@@ -40,7 +40,13 @@ export const getAvailableMemory = async () => {
     }
 };
 
-export const getBlockletServerInfo = async () => {
+export const getBlockletServerInfo = async (): Promise<{
+    type: string;
+    name: string;
+    version: string;
+    mode: string;
+    internalIP: string;
+}> => {
     try {
         const internalIP =
             (await internalIpV4()) ||
@@ -48,17 +54,17 @@ export const getBlockletServerInfo = async () => {
         if (!internalIP) {
             throw new Error('Failed to get internal IP address');
         }
-        const response = await fetch(
-            `https://${internalIP.replace(/\./g, '-')}.ip.abtnet.io/.well-known/did.json`
-        );
+        const url = `https://${internalIP.replace(/\./g, '-')}.ip.abtnet.io/.well-known/did.json`;
+        const response = await fetch(url);
         if (response.status !== 200) {
             throw new Error(
-                `Failed to get blocklet server info, ip: ${internalIP}, status: ${response.status}, statusText: ${response.statusText}`
+                `Failed to get blocklet server info, url: ${url}, status: ${response.status}, statusText: ${response.statusText}`
             );
         }
         const data = await response.json();
         const metadata = data.services.find((service: any) => service.type === 'server').metadata;
         return {
+            type: 'server',
             name: metadata.name,
             version: metadata.version,
             mode: metadata.mode,
@@ -67,6 +73,7 @@ export const getBlockletServerInfo = async () => {
     } catch (error) {
         console.error(error);
         return {
+            type: 'server',
             name: 'unknown',
             version: 'unknown',
             mode: 'unknown',

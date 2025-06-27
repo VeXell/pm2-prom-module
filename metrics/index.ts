@@ -59,7 +59,7 @@ export const initMetrics = (prefix: string) => {
         help: 'Show blocklet server info',
         async collect() {
             const info = await getBlockletServerInfo();
-            this.remove({ type: info.type });
+            this.reset();
             this.set(info, 1);
         },
         registers: [registry],

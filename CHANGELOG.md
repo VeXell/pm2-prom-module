@@ -1,3 +1,7 @@
+## 2.6.4 (2025-6-27)
+
+- fix: redundant exported blocklet server information
+
 ## 2.6.3 (2025-6-24)
 
 - feat: support exporting information related to blocklet server

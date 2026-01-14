@@ -42,7 +42,7 @@ export const PM2_METRICS = [
     { name: 'Event Loop Latency', unit: 'ms' },
     { name: 'Active handles', unit: 'number' },
     { name: 'Active requests', unit: 'number' },
-    { name: 'HTTP', unit: 'req/min' },
+    { name: 'HTTP', unit: 'req/sec' },
     { name: 'HTTP P95 Latency', unit: 'ms' },
     { name: 'HTTP Mean Latency', unit: 'ms' },
 ];

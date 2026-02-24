@@ -16,31 +16,31 @@ This module `pm2-prom-module` allows you to collect all PM2 monitoring data such
 
 ### PM collected statistic
 
--   Free memory
--   CPUs count
--   Count of running apps
--   Count of instances for every app
--   Average using memory for every app
--   Total using memory for all instances of a app
--   Average using CPU for every app
--   Current CPU usage for every app instance
--   Restarts count for every app instance
--   Uptime for every app
--   App status (0-unknown, 1-running, 2-pending, 3-stopped, 4-errored)
--   Memory and CPU limits when run PM2 in docker container
+- Free memory
+- CPUs count
+- Count of running apps
+- Count of instances for every app
+- Average using memory for every app
+- Total using memory for all instances of a app
+- Average using CPU for every app
+- Current CPU usage for every app instance
+- Restarts count for every app instance
+- Uptime for every app
+- App status (0-unknown, 1-running, 2-pending, 3-stopped, 4-errored)
+- Memory and CPU limits when run PM2 in docker container
 
 Also collect all PM2 default metrics for every instance:
 
--   Used Heap Size
--   Heap Usage
--   Heap Size
--   Event Loop Latency p95
--   Event Loop Latency
--   Active handles
--   Active requests
--   HTTP req/min
--   HTTP P95 Latency
--   HTTP Mean Latency
+- Used Heap Size
+- Heap Usage
+- Heap Size
+- Event Loop Latency p95
+- Event Loop Latency
+- Active handles
+- Active requests
+- HTTP req/min
+- HTTP P95 Latency
+- HTTP Mean Latency
 
 ## Install
 
@@ -60,14 +60,14 @@ pm2 uninstall pm2-prom-module
 
 Default settings:
 
--   `port` Connection port for Prometheus agent. (default to `9988`)
--   `hostname` Listen address. (default to `0.0.0.0`)
--   `unix_socket_path` Set if you want to listen on unix socket (default to `` - empty string)
--   `service_name` Default label for registry (default to `` - empty string)
--   `debug` Enable debug mode to show logs from the module (default to `false`)
--   `aggregate_app_metrics` Enable to aggregate metrics from app instances (default to `true`)
--   `app_check_interval` Interval to check available apps and collect statistic (default to `1000`)
--   `prefix` Prefix for metrics (default to `pm2`)
+- `port` Connection port for Prometheus agent. (default to `9988`)
+- `hostname` Listen address. (default to `0.0.0.0`)
+- `unix_socket_path` Set if you want to listen on unix socket (default to `` - empty string)
+- `service_name` Default label for registry (default to `` - empty string)
+- `debug` Enable debug mode to show logs from the module (default to `false`)
+- `aggregate_app_metrics` Enable to aggregate metrics from app instances (default to `true`)
+- `app_check_interval` Interval to check available apps and collect statistic (default to `1000`)
+- `prefix` Prefix for metrics (default to `pm2`)
 
 To modify the module config values you can use the following commands:
 
@@ -182,14 +182,19 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ## Change log
 
+### Version 2.7.1
+
+- Update libs
+- Allow to monit instances with pm_id=0. [Merge request](https://github.com/VeXell/pm2-prom-module/pull/14).
+
 ### Version 2.6.0
 
--   New logic to collect internal statistic from apps. Check status before send request to process via `sendDataToProcessId`
+- New logic to collect internal statistic from apps. Check status before send request to process via `sendDataToProcessId`
 
 ### Version 2.5.4
 
--   Change logic to detect app status to prevent failed request with `sendDataToProcessId`
--   Add new metric `prefix` Prefix for metrics (default to `pm2`)
+- Change logic to detect app status to prevent failed request with `sendDataToProcessId`
+- Add new metric `prefix` Prefix for metrics (default to `pm2`)
 
 ```bash
 pm2 set pm2-prom-module:prefix my_metrics
@@ -199,22 +204,22 @@ pm2 set pm2-prom-module:prefix my_metrics
 
 Additional metrics when PM2 running in docker container and you limit it with commands for example `docker run --memory="512m" --cpus="2"`
 
--   Add new metric `pm2_container_total_memory` describes total available memory in docker container
--   Add new metric `pm2_container_free_memory` describes free memory in docker container
--   Add new metric `pm2_container_used_memory` describes used memory in container
--   Add new metric `pm2_container_cpu_count` describes available CPUs limit in docker container
+- Add new metric `pm2_container_total_memory` describes total available memory in docker container
+- Add new metric `pm2_container_free_memory` describes free memory in docker container
+- Add new metric `pm2_container_used_memory` describes used memory in container
+- Add new metric `pm2_container_cpu_count` describes available CPUs limit in docker container
 
 ### Version 2.4.0
 
--   Add new metric `pm2_app_status` describes status of an app. (0-unknown,1-running,2-pending,3-stopped,4-errored)
-    All other metrics related to the app (not for pids) will be displayed. For example, `pm2_available_apps` will show app until
-    it will be deleted from the PM2 or `pm2_app_instances` will show 0 for `stopped` or `errored` status apps.
+- Add new metric `pm2_app_status` describes status of an app. (0-unknown,1-running,2-pending,3-stopped,4-errored)
+  All other metrics related to the app (not for pids) will be displayed. For example, `pm2_available_apps` will show app until
+  it will be deleted from the PM2 or `pm2_app_instances` will show 0 for `stopped` or `errored` status apps.
 
 ### Version 2.3.2
 
--   Add new config option `hostname`. Listen address. If you want to specify, for example, `localhost`, `127.0.0.1`
--   Add new config option `unix_socket_path`. Run server on unix socket path.
+- Add new config option `hostname`. Listen address. If you want to specify, for example, `localhost`, `127.0.0.1`
+- Add new config option `unix_socket_path`. Run server on unix socket path.
 
 ### Version 2.3.1
 
--   Add new config option `app_check_interval`. Interval to check available apps and collect statistic
+- Add new config option `app_check_interval`. Interval to check available apps and collect statistic

@@ -182,7 +182,7 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ## Change log
 
-### Version 2.7.1
+### Version 2.7.2
 
 - Update libs
 - Allow to monit instances with pm_id=0. [Merge request](https://github.com/VeXell/pm2-prom-module/pull/14).

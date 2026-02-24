@@ -94,7 +94,7 @@ const detectActiveApps = () => {
             // Get the last app instance status
             mapAppPids[appName].status = appInstance.pm2_env?.status;
 
-            if (appInstance.pid && appInstance.pm_id) {
+            if (appInstance.pid && appInstance.pm_id !== undefined) {
                 mapAppPids[appName].pids.push(appInstance.pid);
 
                 // Fill active pm2 apps id to collect internal statistic

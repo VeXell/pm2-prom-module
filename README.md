@@ -182,6 +182,10 @@ pm2 restart pm2-prom-module --max-memory-restart=3000M
 
 ## Change log
 
+### Version 2.7.3
+
+- Close issue [#15](https://github.com/VeXell/pm2-prom-module/issues/15) with reset state on collecting metrics from apps. [Merge request](https://github.com/VeXell/pm2-prom-module/pull/16).
+
 ### Version 2.7.2
 
 - Update libs

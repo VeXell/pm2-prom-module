@@ -196,9 +196,11 @@ export const processAppMetrics = (
     }
 
     data.appResponse.metrics.forEach((entry) => {
-        if (Array.isArray(entry.values) && entry.values.length) {
-            const metricName = entry.name;
+        const metricName = entry.name;
+        const pm2id = String(data.pmId);
+        const hasValues = Array.isArray(entry.values) && entry.values.length > 0;
 
+        if (hasValues) {
             if (!dynamicAppMetrics[data.appName]) {
                 dynamicAppMetrics[data.appName] = {};
             }
@@ -209,8 +211,16 @@ export const processAppMetrics = (
                 dynamicAppMetrics[data.appName][metricName] = {};
             }
 
-            const pm2id = String(data.pmId);
             dynamicAppMetrics[data.appName][metricName][pm2id] = entry;
+        } else if (dynamicAppMetrics[data.appName]?.[metricName]?.[pm2id]) {
+            // The metric dropped to zero series for this instance (e.g. the app
+            // reset the gauge after a label set disappeared). Drop the stored
+            // snapshot so we stop exposing its stale last value.
+            delete dynamicAppMetrics[data.appName][metricName][pm2id];
+
+            if (Object.keys(dynamicAppMetrics[data.appName][metricName]).length === 0) {
+                delete dynamicAppMetrics[data.appName][metricName];
+            }
         }
     });
 };
